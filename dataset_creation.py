@@ -9,8 +9,8 @@ import math
 def projection_to_2D(input_tensor: np.array, alpha: float, beta: float, dxc: float, dxd: float) -> np.array:
 
     #Convert angles to radians:
-    # alpha = alpha / 180 * np.pi
-    # beta = beta / 180 * np.pi
+    alpha = math.radians(alpha)
+    beta = math.radians(beta)
 
     #Projection
     p_base = np.sqrt(1 + np.tan(alpha)**2 + np.tan(beta)**2)
@@ -22,7 +22,7 @@ def projection_to_2D(input_tensor: np.array, alpha: float, beta: float, dxc: flo
     #Axes of X-ray source coordinate system
     z_axis = -p / dxc
     x_axis = np.array([p_y / np.sqrt(p_x**2 + p_y**2), -p_x / np.sqrt(p_x**2 + p_y**2), 0])
-    y_base = np.sqrt((p_x**2 + p_y**2)**2 + p_x**2*p_x**2 + p_y**2*p_z**2)
+    y_base = np.sqrt((p_x**2 + p_y**2)**2 + p_x**2*p_z**2 + p_y**2*p_z**2)
     y_axis = np.array([-p_x*p_z / y_base, -p_x*p_z / y_base, -p_x*p_z / y_base])
 
     coordinates = []
@@ -41,18 +41,18 @@ def projection_to_2D(input_tensor: np.array, alpha: float, beta: float, dxc: flo
                     coordinates.append([r_x * dxd / r_z, r_y * dxd / r_z])
 
     coordinates = np.array(coordinates)
-    coordinates[:,0] += np.min(coordinates[:,0])
-    coordinates[:,1] += np.min(coordinates[:,1])
-    coordinates = coordinates/np.max(coordinates) * 512
+    coordinates[:,0] -= np.min(coordinates[:,0])
+    coordinates[:,1] -= np.min(coordinates[:,1])
+    # coordinates = coordinates/np.max(coordinates) * 512
     return coordinates
 
 if __name__ == "__main__":
     cta_vessels = nib.load('C:\\Users\\20203226\\Documents\\CTA data\\1-200\\1.label.nii.gz').get_fdata()
-    coords = projection_to_2D(cta_vessels, -30, -25, 38, 2*38)
+    coords = projection_to_2D(cta_vessels, -30, 25, 38, 56)
 
     fig, ax = plt.subplots()
-    ax.scatter(coords[:,0], coords[:,1], alpha=0.05, s=2)
-    # ax.set_ylim([-512,0])
+    ax.scatter(coords[:,0], coords[:,1], s=2)
+    # ax.set_ylim([0, 512])
     # ax.set_xlim([0, 512])
     plt.show()
     pass
