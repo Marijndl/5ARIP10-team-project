@@ -30,13 +30,13 @@ def extract_centerlines_slicer(label_id: int):
   # Extract the centerline
   centerlineCurveNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsCurveNode", "Centerline curve")
   centerlinePolyData, voronoiDiagramPolyData = extractLogic.extractCenterline(inputSurfacePolyData, endPointsMarkupsNode)
-  centerlinePropertiesTableNode = None
+  centerlinePropertiesTableNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTableNode", "Centerline properties")
   extractLogic.createCurveTreeFromCenterline(centerlinePolyData, centerlineCurveNode, centerlinePropertiesTableNode)
-
-print("Done")
 
 if __name__ == "__main__":
   extract_centerlines_slicer(2)
+
+  print("Done")
 
 #Instructions: Open a cmd prompt and run the following lines:
 #cd C:\Users\20203226\AppData\Local\slicer.org\Slicer 5.6.1
