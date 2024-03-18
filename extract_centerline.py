@@ -1,7 +1,7 @@
 import ExtractCenterline
 extractLogic = ExtractCenterline.ExtractCenterlineLogic()
 
-def resample_segment(segment, sample_number = 350):
+def resample_segment(segment, label_id, sample_number = 350):
   # Resample each segment
   currentPoints = segment.GetCurvePointsWorld()
   newPoints = vtk.vtkPoints()
@@ -75,14 +75,17 @@ def save_centerlines_to_file(label_id):
 
   for i, segment in enumerate(vessel_segements):
     # Resample curve
-    resampledCurve = resample_segment(segment)
+    resampledCurve = resample_segment(segment, label_id)
 
     # Save new curve to a file.
-    slicer.modules.markups.logic().ExportControlPointsToCSV(resampledCurve, f"C:\\Users\\20203226\\Documents\\CTA data\\Segments\\SegmentPoints_{label_id}_{i}.csv")
+    slicer.modules.markups.logic().ExportControlPointsToCSV(resampledCurve, f"D:\\CTA data\\Segments\\SegmentPoints_{label_id}_{i}.csv")
 
 def extract_centerlines_slicer(label_id: int):
+  # Clear up the scene
+  slicer.mrmlScene.Clear()
+
   # Load the CTA data
-  slicer.util.loadSegmentation(f"c:/Users/20203226/Documents/CTA data/1-200/{label_id}.label.nii.gz")
+  slicer.util.loadSegmentation(f"d:/CTA data/1-1000/{label_id}.label.nii.gz")
 
   # Select the segmentation node
   segmentationName = f'{label_id}.label.nii.gz'
@@ -101,10 +104,11 @@ def extract_centerlines_slicer(label_id: int):
 
 
 if __name__ == "__main__":
-  extract_centerlines_slicer(2)
+  for file in range(2):
+    extract_centerlines_slicer(file+1)
 
   print("Done")
 
 #Instructions: Open a cmd prompt and run the following lines:
 #cd C:\Users\20203226\AppData\Local\slicer.org\Slicer 5.6.1
-#Slicer.exe --python-script "C:\Users\20203226\Documents\GitHub\5ARIP10-team-project\extract_centerline.py"
+#Slicer.exe --python-script "C:\Users\20203226\Documents\GitHub\5ARIP10-team-project\extract_centerline.py" --no-splash --no-main-window
