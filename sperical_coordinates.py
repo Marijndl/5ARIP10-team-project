@@ -56,9 +56,9 @@ def convert_back(origin_tensor: np.array, spherical_coordinates: np.array) -> np
 
     return np.array(cartesian_coordinates)
 
-## Testing and plotting:
+## Testing and validation plotting:
 
-data = np.genfromtxt(f"D:\\CTA data\\Segments\\SegmentPoints_1_3.csv", delimiter=",")
+data = np.genfromtxt(f"D:\\CTA data\\Segments\\SegmentPoints_55_4.csv", delimiter=",")
 coordinates = data[1:,1:4]
 origin_tensor, spherical_coordinates = convert_to_spherical(coordinates)
 
@@ -75,7 +75,6 @@ z = coordinates[:, 2]
 x_r = reconstructed_coorinates[:, 0]
 y_r = reconstructed_coorinates[:, 1]
 z_r = reconstructed_coorinates[:, 2]
-
 
 # Plot the line connecting the points
 ax.plot(x, y, z, marker='o', linestyle='-')
