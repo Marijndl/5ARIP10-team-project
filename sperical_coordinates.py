@@ -1,8 +1,7 @@
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-import ipympl
+from scipy.interpolate import interp1d
 mpl.use('Qt5Agg')
 
 
@@ -56,33 +55,61 @@ def convert_back(origin_tensor: np.array, spherical_coordinates: np.array) -> np
 
     return np.array(cartesian_coordinates)
 
-## Testing and validation plotting:
+if __name__ == "__main__":
+    ## Testing and validation plotting:
 
-data = np.genfromtxt(f"D:\\CTA data\\Segments\\SegmentPoints_55_4.csv", delimiter=",")
-coordinates = data[1:,1:4]
-origin_tensor, spherical_coordinates = convert_to_spherical(coordinates)
+    data = np.genfromtxt(f"D:\\CTA data\\Segments\\SegmentPoints_55_4.csv", delimiter=",")
+    coordinates = data[1:,1:4]
+    coordinates[:,0] -= np.min(coordinates[:,0])
+    coordinates[:,1] -= np.min(coordinates[:,1])
+    coordinates[:,2] -= np.min(coordinates[:,2])
 
-reconstructed_coorinates = convert_back(origin_tensor, spherical_coordinates)
+    data_2D = np.genfromtxt(f"D:\\CTA data\\Segments_deformed\\SegmentPoints_55_4_def2D.csv", delimiter=",")
+    coordinates_2D = data_2D
+    # f = interp1d(coordinates_2D[:,0], coordinates_2D[:,1])
 
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
+    coordinates_2D[:, 0] -= np.min(coordinates_2D[:, 0])
+    coordinates_2D[:, 1] -= np.min(coordinates_2D[:, 1])
 
-# Extract x, y, z coordinates from the input array
-x = coordinates[:, 0]
-y = coordinates[:, 1]
-z = coordinates[:, 2]
+    #Convert to spherical
+    origin_tensor, spherical_coordinates = convert_to_spherical(coordinates)
+    origin_tensor_2, spherical_coordinates_2 = convert_to_spherical(np.hstack((coordinates_2D, np.zeros((coordinates_2D.shape[0], 1)))))
 
-x_r = reconstructed_coorinates[:, 0]
-y_r = reconstructed_coorinates[:, 1]
-z_r = reconstructed_coorinates[:, 2]
+    # Deformation
+    samples = np.linspace(0, 2*np.pi, num=349)
+    deformation = np.sin(samples)
+    spherical_coordinates[:, 1] += 0.10 * deformation
+    spherical_coordinates[:, 2] += 0.10 * deformation
 
-# Plot the line connecting the points
-ax.plot(x, y, z, marker='o', linestyle='-')
-ax.plot(x_r, y_r, z_r)
+    # Convert back to cartesian
+    reconstructed_coordinates = convert_back(origin_tensor, spherical_coordinates)
 
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
 
-ax.set_xlabel('X')
-ax.set_ylabel('Y')
-ax.set_zlabel('Z')
+    # Extract x, y, z coordinates from the input array
+    x = coordinates[:, 0]
+    y = coordinates[:, 1]
+    z = coordinates[:, 2]
 
-plt.show()
+    x_r = reconstructed_coordinates[:, 0]
+    y_r = reconstructed_coordinates[:, 1]
+    z_r = reconstructed_coordinates[:, 2]
+
+    x_flat = reconstructed_coordinates[:, 0]
+    y_flat = reconstructed_coordinates[:, 1]
+
+    x_2D = coordinates_2D[:, 0]
+    y_2D = coordinates_2D[:, 1]
+
+    # Plot the line connecting the points
+    ax.plot(x, y, z,)
+    ax.plot(x_r, y_r, z_r)
+    ax.plot(x_flat, y_flat)
+    ax.plot(x_2D, y_2D, ":")
+
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    ax.legend(['Original centerline segment', 'Deformed centerline segment', '2D projection deformed segment', '2D loaded from csv file'])
+    plt.show()
