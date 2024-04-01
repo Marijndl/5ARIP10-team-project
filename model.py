@@ -1,8 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-
+import numpy as np
 
 
 class DualBranch(nn.Module):
@@ -29,21 +28,25 @@ class DualBranch(nn.Module):
             
 
         )
+        self.bn_relu = nn.Sequential(
+            nn.BatchNorm1d(64),
+            nn.ReLU()
+        )
 
     def forward(self, origin, shape):
         origin_feat = self.origin_branch(origin)
         shape_feat = self.shape_branch(shape)
 
-        combined = origin_feat + shape_feat
-        return combined
+        return self.bn_relu(torch.add(origin_feat, shape_feat))
+        
 
 
 class Downsample(nn.Module):
     def __init__(self, in_channels, out):
         super(Downsample, self).__init__()
         self.conv_layers = nn.Sequential(
-            nn.Conv1d(in_channels, out_channels=8, kernel_size=1),
-            nn.BatchNorm1d(8),
+            nn.Conv1d(in_channels, out_channels=64, kernel_size=1),
+            nn.BatchNorm1d(64),
             nn.ReLU(),
             nn.Conv1d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
             nn.BatchNorm1d(64),
@@ -57,10 +60,15 @@ class Downsample(nn.Module):
             nn.Conv1d(in_channels=64, out_channels=out, kernel_size=1)
         )
 
-        self.conv2 = nn.Conv1d(in_channels=3, out_channels=out, kernel_size=3, padding=1, stride=2)
+        self.bn_relu_add = nn.Sequential(
+            nn.BatchNorm1d(out),
+            nn.ReLU()
+        )
+
+        self.conv2 = nn.Conv1d(in_channels=in_channels, out_channels=out, kernel_size=3, padding=1, stride=2)
 
     def forward(self, x):
-        return torch.add(self.conv_layers(x), self.conv2)
+        return self.bn_relu_add(torch.add(self.conv_layers(x), self.conv2))
     
 class grey(nn.Module):
     def __init__(self, in_channels, out_channels):
@@ -81,7 +89,7 @@ class orange(nn.Module):
         self.upconv = nn.ConvTranspose1d(in_channels, out_channels, kernel_size=3, padding =1)
         
     def forward(self, x, prev_info):
-        return  torch.cat(self.upconv(x), prev_info)
+        return  torch.cat((self.upconv(x), prev_info), dim=1)
 
 
 class CARNet(nn.Module):
@@ -89,7 +97,8 @@ class CARNet(nn.Module):
         super(CARNet, self).__init__()
         self.dual_branch_3d = DualBranch()
         self.dual_branch_2d = DualBranch()
-        
+        self.unet_backbone = UNet()
+
     def forward(self, x3d_origin, x3d_shape, x2d_origin, x2d_shape):
         
         x3d = self.dual_branch_3d(x3d_origin, x3d_shape)
@@ -145,3 +154,7 @@ class UNet(nn.Module):
         
         deformation_field = self.output_layer(x)
         return deformation_field
+    
+
+    
+    
