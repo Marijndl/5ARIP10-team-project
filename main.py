@@ -6,8 +6,8 @@ from model import CARNet
 import numpy as np
 
 class VesselDataset(Dataset):
-    def __init__(self, data_paths
-    
+    def __init__(self, data_paths):
+    self.data_paths = data_paths
     def __len__(self):
         return len(self.data_paths)
     
