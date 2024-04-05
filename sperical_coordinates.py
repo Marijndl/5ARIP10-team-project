@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from scipy.interpolate import interp1d
 mpl.use('Qt5Agg')
 
 
@@ -76,7 +75,8 @@ if __name__ == "__main__":
     origin_tensor_2, spherical_coordinates_2 = convert_to_spherical(np.hstack((coordinates_2D, np.zeros((coordinates_2D.shape[0], 1)))))
 
     # Deformation
-    samples = np.linspace(0, 2*np.pi, num=349)
+    offset = 0.5*np.pi
+    samples = np.linspace(offset, offset+2*np.pi, num=349)
     deformation = np.sin(samples)
     spherical_coordinates[:, 1] += 0.10 * deformation
     spherical_coordinates[:, 2] += 0.10 * deformation
@@ -106,7 +106,7 @@ if __name__ == "__main__":
     ax.plot(x, y, z,)
     ax.plot(x_r, y_r, z_r)
     ax.plot(x_flat, y_flat)
-    ax.plot(x_2D, y_2D, ":")
+    # ax.plot(x_2D, y_2D, ":")
 
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
