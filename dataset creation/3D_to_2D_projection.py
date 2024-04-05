@@ -35,13 +35,16 @@ def projection_to_2D(input_tensor: np.array, alpha: float, beta: float, dxc: flo
                     v_z = z * 0.5
 
                     #Convert point in volume to point in X-ray source
-                    r_x = np.dot(np.array([v_x - p_x, 0, 0]), x_axis)
-                    r_y = np.dot(np.array([0, v_y - p_y, 0]), y_axis)
-                    r_z = np.dot(np.array([0, 0, v_z - p_z]), z_axis)   #(v_z - p_x) * z_axis
+                    # r_x = np.dot(np.array([v_x - p_x, 0, 0]), x_axis)
+                    # r_y = np.dot(np.array([0, v_y - p_y, 0]), y_axis)
+                    # r_z = np.dot(np.array([0, 0, v_z - p_z]), z_axis)   #(v_z - p_x) * z_axis
                     # r = (v_x - p_x) * x_axis + (v_y - p_y) * y_axis + (v_z - p_z) * z_axis
                     # r_x = r[0]
                     # r_y = r[1]
                     # r_z = r[2]
+                    r_x = v_x - p_x
+                    r_y = v_y - p_y
+                    r_z = v_z - p_z
                     coordinates.append([r_x * dxd / r_z, r_y * dxd / r_z])
 
     coordinates = np.array(coordinates)
@@ -51,7 +54,7 @@ def projection_to_2D(input_tensor: np.array, alpha: float, beta: float, dxc: flo
     return coordinates
 
 if __name__ == "__main__":
-    cta_vessels = nib.load('C:\\Users\\20203226\\Documents\\CTA data\\1-200\\1.label.nii.gz').get_fdata()
+    cta_vessels = nib.load('D:\\CTA data\\1-1000\\1.label.nii.gz').get_fdata()
     coords = projection_to_2D(cta_vessels, -30, 25, 38, 56)
 
     fig, ax = plt.subplots(figsize=(10,10))

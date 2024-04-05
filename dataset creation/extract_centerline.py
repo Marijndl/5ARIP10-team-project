@@ -104,8 +104,12 @@ def extract_centerlines_slicer(label_id: int):
 
 
 if __name__ == "__main__":
-  for file in range(2):
-    extract_centerlines_slicer(file+1)
+  for file in range(880, 1000):
+    try:
+      extract_centerlines_slicer(file+1)
+    except:
+      slicer.mrmlScene.Clear()
+      pass
 
   print("Done")
 
