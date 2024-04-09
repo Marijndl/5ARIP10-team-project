@@ -45,7 +45,7 @@ class Downsample(nn.Module):
     def __init__(self, in_channels, out):
         super(Downsample, self).__init__()
         self.conv_layers = nn.Sequential(
-            nn.Conv1d(in_channels, out_channels=64, kernel_size=1),
+            nn.Conv1d(in_channels=in_channels, out_channels=64, kernel_size=1),
             # nn.BatchNorm1d(64),
             nn.ReLU(),
             nn.Conv1d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
@@ -86,10 +86,14 @@ class grey(nn.Module):
 class orange(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(orange, self).__init__()
-        self.upconv = nn.ConvTranspose1d(in_channels, out_channels, kernel_size=3, padding =1)
+        self.upconv = nn.Sequential(
+            nn.ConvTranspose1d(in_channels, out_channels, kernel_size=3, padding=1, stride=2, output_padding=1),
+            # nn.BatchNorm1d(out_channels),
+            nn.ReLU()
+        )
         
-    def forward(self, x, prev_info):
-        return  torch.cat((self.upconv(x), prev_info), dim=1)
+    def forward(self, x):
+        return self.upconv(x)
 
 
 class CARNet(nn.Module):
@@ -100,15 +104,20 @@ class CARNet(nn.Module):
         self.unet_backbone = UNet()
 
     def forward(self, x3d_origin, x3d_shape, x2d_origin, x2d_shape):
-        
+
         x3d = self.dual_branch_3d(x3d_origin, x3d_shape)
         x2d = self.dual_branch_2d(x2d_origin, x2d_shape)
-        
-        x = torch.cat((x3d, x2d), dim=0)
-        
+
+        x = torch.cat((x3d, x2d), dim=1)
+        # print(x.shape)
+
+        # Pad the input to the Unet:
+        x = torch.cat((x, torch.zeros((x.shape[0], x.shape[1], 3))), dim=2)
+        # print("Padded "+str(x.shape))
+
         deformation_field = self.unet_backbone(x)
-        
-        return deformation_field
+
+        return deformation_field[:,:-3]
 
 class UNet(nn.Module):
     def __init__(self):
@@ -123,12 +132,12 @@ class UNet(nn.Module):
         self.bridge = grey(512, 512)
         
         
-        self.up1 = orange(512, 512)  
-        self.up2 = grey(512, 256)
+        self.up1 = orange(512, 512)
+        self.up2 = grey(768, 256)
         self.up3 = orange(256, 256)  
-        self.up4 = grey(256, 128)
+        self.up4 = grey(384, 128)
         self.up5 = orange(128, 128)  
-        self.up6 = grey(128, 64)
+        self.up6 = grey(192, 64)
 
         
         self.output_layer = nn.Conv1d(64, 2, kernel_size=1)
@@ -141,15 +150,23 @@ class UNet(nn.Module):
         skip_conn4 = self.down4(skip_conn3)
         
         x = self.bridge(skip_conn4)
+
+        # print("x " + str(x.shape))
+        # print("skip_conn3 " + str(skip_conn3.shape))
+        # print("skip_conn2 " + str(skip_conn2.shape))
         
-        
-        x = self.up1(x, skip_conn4)
+        x = self.up1(x)
+        x = torch.cat((x, skip_conn3), dim=1)
+        # print("x after upconv = " + str(x.shape))
         x = self.up2(x)
-        x = self.up3(x, skip_conn3)
+        x = self.up3(x)
+        x = torch.cat((x, skip_conn2), dim=1)
+        # print("x after upconv = " + str(x.shape))
         x = self.up4(x)
-        x = self.up5(x, skip_conn2)
+        x = self.up5(x)
+        x = torch.cat((x, conn1), dim=1)
+        # print("x after upconv = " + str(x.shape))
         x = self.up6(x)
-        
         
         deformation_field = self.output_layer(x)
         return deformation_field
