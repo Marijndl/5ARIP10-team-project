@@ -1,9 +1,9 @@
 import numpy as np
 import pandas as pd
 import os
-import nibabel as nib
+# import nibabel as nib
 import matplotlib.pyplot as plt
-import pyvista as pv
+# import pyvista as pv
 import math
 
 def projection_to_2D(input_tensor: np.array, alpha: float, beta: float, dxc: float, dxd: float) -> np.array:

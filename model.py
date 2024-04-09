@@ -104,7 +104,7 @@ class CARNet(nn.Module):
         x3d = self.dual_branch_3d(x3d_origin, x3d_shape)
         x2d = self.dual_branch_2d(x2d_origin, x2d_shape)
         
-        x = torch.cat((x3d, x2d), dim=1)
+        x = torch.cat((x3d, x2d), dim=0)
         
         deformation_field = self.unet_backbone(x)
         
@@ -114,7 +114,7 @@ class UNet(nn.Module):
     def __init__(self):
         super(UNet, self).__init__()
         
-        self.down1 = grey(64, 64)
+        self.down1 = grey(128, 64)
         self.down2 = Downsample(64, 128)
         self.down3 = Downsample(128, 256)  
         self.down4 = Downsample(256, 512)  

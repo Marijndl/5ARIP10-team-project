@@ -6,6 +6,7 @@ from model import CARNet
 import numpy as np
 import os
 from spherical_coordinates import *
+from torchsummary import summary
 
 model = CARNet()
 loss = nn.MSELoss()  # put loss function we have here
@@ -39,6 +40,6 @@ spherical_2D = torch.reshape(spherical_2D, (3, 349)).float()
 spherical_3D = torch.reshape(spherical_3D, (3, 349)).float()
 
 
-ans = model.forward(origin_3D, spherical_3D, origin_2D, spherical_2D)
-
-print(ans.shape)
+# ans = model.forward(origin_3D, spherical_3D, origin_2D, spherical_2D)
+print(summary(model, (origin_3D, spherical_3D, origin_2D, spherical_2D)))
+# print(ans.shape)
