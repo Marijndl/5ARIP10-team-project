@@ -7,7 +7,12 @@ import numpy as np
 import os
 from spherical_coordinates import *
 from torch.autograd import Variable
+from tqdm import tqdm
+import warnings
 
+warnings.filterwarnings("ignore")
+#set device
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 offset_list = np.genfromtxt("D:\\CTA data\\Offset_deformations.txt", delimiter=",")
 
@@ -55,36 +60,80 @@ class CenterlineDataset(Dataset):
 
         return sample
 
+class CenterlineDatasetSpherical(Dataset):
+    def __init__(self, base_dir, transform=None):
+        self.origin_2D = torch.load(os.path.join(base_dir, "origin_2D.pt"))
+        self.origin_3D = torch.load(os.path.join(base_dir, "origin_3D.pt"))
+        self.shape_2D = torch.load(os.path.join(base_dir, "shape_2D.pt"))
+        self.shape_3D = torch.load(os.path.join(base_dir, "shape_3D.pt"))
+        self.transform = transform
+    def __len__(self):
+        return self.shape_2D.shape[0]
+
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        sample = {'origin_2D': self.origin_2D[idx], 'origin_3D': self.origin_3D[idx], 'shape_2D': self.shape_2D[idx], 'shape_3D': self.shape_3D[idx], 'offset': offset_list[idx]}
+        # sample = (self.origin_2D[idx], self.origin_3D[idx], self.shape_2D[idx], self.shape_3D[idx], offset_list[idx])
+
+        if self.transform:
+            sample = self.transform(sample)
+
+        return sample
+
 model = CARNet()
+
+total_params = sum(p.numel() for p in model.parameters())
+print(f"Number of parameters: {total_params}")
+
 criterion = nn.MSELoss()  # put loss function we have here
 optimizer = optim.Adam(model.parameters(), lr=0.001)  # Adjust hyperparameters according to paper
 
 
 def train_model(model, criterion, optimizer, train_loader, num_epochs=186):
     for epoch in range(num_epochs):
-        model.train()  
+        # model.train()
         running_loss = 0.0
-        
-        for input in train_loader:
+
+        loop = tqdm(enumerate(train_loader), total=len(train_loader), leave=True)
+        for batch_idx, input in loop:
+            # Get data to cuda
+            # origin_3D = origin_3D.to(device)
+            # shape_3D = shape_3D.to(device)
+            # origin_2D = origin_2D.to(device)
+            # shape_2D = shape_2D.to(device)
+            # offset = offset.to(device)
+
+            #Set gradient to zero
             optimizer.zero_grad()
-            
+
+            #Forward pass
             outputs = model(input['origin_3D'], input['shape_3D'], input['origin_2D'], input['shape_2D'])
             loss = criterion(torch.Tensor(input['offset']), torch.Tensor(input['offset']))
             loss = Variable(loss, requires_grad=True)
+
+            #Backward pass
             loss.backward()
+
+            #Optimize
             optimizer.step()
             
             running_loss += loss.item() * input['origin_3D'].shape[0]
-            print(running_loss)
-        
+
+            #Update progress bar
+            loop.set_description(f"Epoch [{epoch+1}/{num_epochs}]")
+            loop.set_postfix(loss = loss.item())
+
         epoch_loss = running_loss / len(train_loader.dataset)
-        print(f'Epoch {epoch}/{num_epochs - 1}, Loss: {epoch_loss:.4f}')
+        # print(f'Epoch {epoch}/{num_epochs - 1}, Loss: {epoch_loss:.4f}')
         
     return model
 
-train_dataset = CenterlineDataset(data_dir_2D="D:\\CTA data\\Segments_deformed_2\\", data_dir_3D="D:\\CTA data\\Segments renamed\\")
+# Load the data:
+# train_dataset = CenterlineDataset(data_dir_2D="D:\\CTA data\\Segments_deformed_2\\", data_dir_3D="D:\\CTA data\\Segments renamed\\")
+train_dataset = CenterlineDatasetSpherical(base_dir="D:\\CTA data\\")
 train_loader = DataLoader(train_dataset, batch_size=512, shuffle=True)
 
-print(train_dataset[0])
-
-# trained_model = train_model(model, criterion, optimizer, train_loader, num_epochs=25)
+# Train the model
+trained_model = train_model(model, criterion, optimizer, train_loader, num_epochs=25)
