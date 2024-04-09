@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 class DualBranch(nn.Module):
     def __init__(self):
@@ -112,7 +114,7 @@ class CARNet(nn.Module):
         # print(x.shape)
 
         # Pad the input to the Unet:
-        x = torch.cat((x, torch.zeros((x.shape[0], x.shape[1], 3))), dim=2)
+        x = torch.cat((x, torch.zeros((x.shape[0], x.shape[1], 3)).to(device)), dim=2)
         # print("Padded "+str(x.shape))
 
         deformation_field = self.unet_backbone(x)
@@ -122,7 +124,7 @@ class CARNet(nn.Module):
 class UNet(nn.Module):
     def __init__(self):
         super(UNet, self).__init__()
-        
+
         self.down1 = grey(128, 64)
         self.down2 = Downsample(64, 128)
         self.down3 = Downsample(128, 256)  
