@@ -18,7 +18,17 @@ offset_list = np.genfromtxt("D:\\CTA data\\Offset_deformations.txt", delimiter="
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 #Initialize model:
+def weights_init(m):
+    if isinstance(m, nn.Conv1d):
+        nn.init.normal_(m.weight.data, mean=0.0, std=1)
+        # xavier(m.bias.data)
+    elif isinstance(m, nn.ConvTranspose1d):
+        nn.init.normal_(m.weight.data, mean=0.0, std=1)
+        # xavier(m.bias.data)
+
+
 model = CARNet().to(device)
+model = model.apply(weights_init)
 criterion = nn.MSELoss()  # put loss function we have here
 optimizer = optim.Adam(model.parameters(), lr=0.001)  # Adjust hyperparameters according to paper
 

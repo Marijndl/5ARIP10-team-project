@@ -11,27 +11,27 @@ class DualBranch(nn.Module):
         super(DualBranch, self).__init__()
         self.origin_branch = nn.Sequential(
             nn.Conv1d(in_channels=3, out_channels=8, kernel_size=1),
-            # nn.BatchNorm1d(8),
+            nn.BatchNorm1d(8),
             nn.ReLU(),
             nn.Conv1d(in_channels=8, out_channels=16, kernel_size=1),
-            # nn.BatchNorm1d(16),
+            nn.BatchNorm1d(16),
             nn.ReLU(),
             nn.Conv1d(in_channels=16, out_channels=32, kernel_size=1),
-            # nn.BatchNorm1d(32),
+            nn.BatchNorm1d(32),
             nn.ReLU(),
             nn.Conv1d(in_channels=32, out_channels=64, kernel_size=1),     
         )
         
         self.shape_branch = nn.Sequential(
             nn.Conv1d(in_channels=3, out_channels=64, kernel_size=3, padding=1),
-            # nn.BatchNorm1d(64),
+            nn.BatchNorm1d(64),
             nn.ReLU(),
             nn.Conv1d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
             
 
         )
         self.bn_relu = nn.Sequential(
-            # nn.BatchNorm1d(64),
+            nn.BatchNorm1d(64),
             nn.ReLU()
         )
 
@@ -48,22 +48,22 @@ class Downsample(nn.Module):
         super(Downsample, self).__init__()
         self.conv_layers = nn.Sequential(
             nn.Conv1d(in_channels=in_channels, out_channels=64, kernel_size=1),
-            # nn.BatchNorm1d(64),
+            nn.BatchNorm1d(64),
             nn.ReLU(),
             nn.Conv1d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
-            # nn.BatchNorm1d(64),
+            nn.BatchNorm1d(64),
             nn.ReLU(),
             nn.Conv1d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
-            # nn.BatchNorm1d(64),
+            nn.BatchNorm1d(64),
             nn.ReLU(),
             nn.Conv1d(in_channels=64, out_channels=64, kernel_size=3, padding=1, stride=2),
-            # nn.BatchNorm1d(64),
+            nn.BatchNorm1d(64),
             nn.ReLU(),
             nn.Conv1d(in_channels=64, out_channels=out, kernel_size=1)
         )
 
         self.bn_relu_add = nn.Sequential(
-            # nn.BatchNorm1d(out),
+            nn.BatchNorm1d(out),
             nn.ReLU()
         )
 
@@ -78,7 +78,7 @@ class grey(nn.Module):
 
         self.conv = nn.Sequential(
             nn.Conv1d(in_channels, out_channels, kernel_size=3, padding=1),
-            # nn.BatchNorm1d(out_channels),
+            nn.BatchNorm1d(out_channels),
             nn.ReLU()
         )
 
@@ -90,7 +90,7 @@ class orange(nn.Module):
         super(orange, self).__init__()
         self.upconv = nn.Sequential(
             nn.ConvTranspose1d(in_channels, out_channels, kernel_size=3, padding=1, stride=2, output_padding=1),
-            # nn.BatchNorm1d(out_channels),
+            nn.BatchNorm1d(out_channels),
             nn.ReLU()
         )
         
