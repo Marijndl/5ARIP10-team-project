@@ -39,6 +39,11 @@ origin_3D = torch.reshape(origin_3D, (3,1)).float()
 spherical_2D = torch.reshape(spherical_2D, (3, 349)).float()
 spherical_3D = torch.reshape(spherical_3D, (3, 349)).float()
 
+# model.cuda()
+# origin_2D.cuda()
+# origin_3D.cuda()
+# spherical_2D.cuda()
+# spherical_3D.cuda()
 
 # ans = model.forward(origin_3D, spherical_3D, origin_2D, spherical_2D)
 print(summary(model, (origin_3D, spherical_3D, origin_2D, spherical_2D)))
