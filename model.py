@@ -134,12 +134,12 @@ class UNet(nn.Module):
         self.bridge = grey(512, 512)
         
         
-        self.up1 = orange(512, 512)
-        self.up2 = grey(768, 256)
-        self.up3 = orange(256, 256)  
-        self.up4 = grey(384, 128)
-        self.up5 = orange(128, 128)  
-        self.up6 = grey(192, 64)
+        self.up1 = orange(512, 256)
+        self.up2 = grey(512, 256)
+        self.up3 = orange(256, 128)
+        self.up4 = grey(256, 128)
+        self.up5 = orange(128, 64)
+        self.up6 = grey(128, 64)
 
         
         self.output_layer = nn.Conv1d(64, 2, kernel_size=1)
@@ -147,29 +147,35 @@ class UNet(nn.Module):
     def forward(self, x):
         
         conn1 = self.down1(x)
+        print("Conn" + str(conn1.shape))
         skip_conn2 = self.down2(conn1)
+        print("Conn2" + str(skip_conn2.shape))
         skip_conn3 = self.down3(skip_conn2)
+        print("Conn3" + str(skip_conn3.shape))
         skip_conn4 = self.down4(skip_conn3)
+        print("Conn4" + str(skip_conn4.shape))
+
         
         x = self.bridge(skip_conn4)
 
-        # print("x " + str(x.shape))
+        print("x " + str(x.shape))
         # print("skip_conn3 " + str(skip_conn3.shape))
         # print("skip_conn2 " + str(skip_conn2.shape))
         
         x = self.up1(x)
         x = torch.cat((x, skip_conn3), dim=1)
-        # print("x after upconv = " + str(x.shape))
+        print("x after upconv = " + str(x.shape))
         x = self.up2(x)
         x = self.up3(x)
         x = torch.cat((x, skip_conn2), dim=1)
-        # print("x after upconv = " + str(x.shape))
+        print("x after upconv = " + str(x.shape))
         x = self.up4(x)
         x = self.up5(x)
         x = torch.cat((x, conn1), dim=1)
-        # print("x after upconv = " + str(x.shape))
+        print("x after upconv = " + str(x.shape))
         x = self.up6(x)
-        
+
+        print("x after up6 = " + str(x.shape))
         deformation_field = self.output_layer(x)
-        # print(x.shape)
+        print("output " + str(deformation_field.shape))
         return deformation_field

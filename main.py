@@ -82,7 +82,7 @@ def train_model(model, criterion, optimizer, train_loader, num_epochs=186):
             loss = criterion(deformed, original)
             # loss = mPD_loss(deformed, original)
             loss = Variable(loss, requires_grad=True)
-            print(loss.item())
+            # print(loss.item())
 
             #Backward pass
             loss.backward()
