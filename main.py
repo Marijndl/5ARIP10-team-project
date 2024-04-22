@@ -59,7 +59,7 @@ model = CARNet()
 # model = CARNet().to(device)
 # model = model.apply(weights_init)
 criterion = nn.MSELoss()  # put loss function we have here
-optimizer = optim.Adam(model.parameters(), lr=0.001)  # Adjust hyperparameters according to paper
+optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-4)  # Adjust hyperparameters according to paper
 
 total_params = sum(p.numel() for p in model.parameters())
 print(f"Number of parameters: {total_params}")
@@ -102,4 +102,8 @@ train_dataset = CenterlineDatasetSpherical(base_dir="D:\\CTA data\\")
 train_loader = DataLoader(train_dataset, batch_size=256, shuffle=True)
 
 # Train the model
-trained_model = train_model(model, criterion, optimizer, train_loader, num_epochs=25)
+trained_model = train_model(model, criterion, optimizer, train_loader, num_epochs=5)
+
+# Save the weights
+torch.save(trained_model.state_dict(), "D:\\CTA data\\models\\CAR-Net-256.pth")
+
