@@ -81,6 +81,28 @@ def convert_back_tensors(origin_tensor: torch.tensor, spherical_coordinates: tor
 
     return cartesian_coordinates
 
+def convert_to_projection_old(origin_3D, spherical_3D, origin_2D, spherical_2D, deformation_field):
+    deformed = torch.tensor([])
+    original = torch.tensor([])
+
+    # Add deformation to 3D line
+    spherical_3D[:, 1:, :] += deformation_field
+
+    for idx in range(deformation_field.shape[0]):
+        # Convert back to cartesian
+        cartesian_2D = convert_back(torch.transpose(origin_2D[idx], 0, 1).detach().numpy(),
+                                    torch.transpose(spherical_2D[idx], 0, 1).detach().numpy()).squeeze()
+        cartesian_3D = convert_back(torch.transpose(origin_3D[idx], 0, 1).detach().numpy(),
+                                    torch.transpose(spherical_3D[idx], 0, 1).detach().numpy()).squeeze()
+
+        # Project to 2D
+        cartesian_3D[:, 2] = np.zeros(cartesian_3D.shape[0])
+
+        original = torch.cat((original, torch.unsqueeze(torch.transpose(torch.from_numpy(cartesian_2D).float(), 0, 1), dim=0)), dim=0)
+        deformed = torch.cat((deformed, torch.unsqueeze(torch.transpose(torch.from_numpy(cartesian_3D).float(), 0, 1), dim=0)), dim=0)
+
+    return deformed, original
+
 if __name__ == "__main__":
     ## Testing and validation plotting:
 
