@@ -55,6 +55,32 @@ def convert_back(origin_tensor: np.array, spherical_coordinates: np.array) -> np
 
     return np.array(cartesian_coordinates)
 
+def convert_back_tensors(origin_tensor: torch.tensor, spherical_coordinates: torch.tensor) -> torch.tensor:
+    """
+    Convert spherical coordinates back to Cartesian coordinates.
+
+    Parameters:
+    - origin_tensor (torch.Tensor): The original point in Cartesian coordinates.
+    - spherical_coordinates (torch.Tensor): An array containing spherical coordinates (r, theta, phi) for each point.
+        - r (float): Radial distance from the origin.
+        - theta (float): Polar angle, in radians, measured from the positive z-axis.
+        - phi (float): Azimuthal angle, in radians, measured from the positive x-axis in the xy-plane.
+
+    Returns:
+    - torch.Tensor: An array containing Cartesian coordinates of points in three-dimensional space.
+    """
+    cartesian_coordinates = origin_tensor.clone().detach()
+
+    for i in range(spherical_coordinates.shape[1]):
+        r = spherical_coordinates[0, i]
+        theta = spherical_coordinates[1, i]
+        phi = spherical_coordinates[2, i]
+
+        current = torch.add(cartesian_coordinates[:, i].unsqueeze(dim=1), torch.tensor([[r * torch.sin(theta) * torch.cos(phi)], [r * torch.sin(theta) * torch.sin(phi)], [r * torch.cos(theta)]]))
+        cartesian_coordinates = torch.cat((cartesian_coordinates, current), dim=1)
+
+    return cartesian_coordinates
+
 if __name__ == "__main__":
     ## Testing and validation plotting:
 
