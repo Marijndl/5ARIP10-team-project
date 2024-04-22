@@ -32,16 +32,16 @@ class CenterlineDataset(Dataset):
         data_3d[:, 2] -= np.min(data_3d[:, 2])
 
         # Convert to spherical:
-        origin_2D, spherical_2D = convert_to_spherical(data_2d)
-        origin_3D, spherical_3D = convert_to_spherical(data_3d)
+        origin_2D, shape_2D = convert_to_spherical(data_2d)
+        origin_3D, shape_3D = convert_to_spherical(data_3d)
 
         origin_2D = torch.reshape(origin_2D, (3, 1)).float()
         origin_3D = torch.reshape(origin_3D, (3, 1)).float()
 
-        spherical_2D = torch.reshape(spherical_2D, (3, 349)).float()
-        spherical_3D = torch.reshape(spherical_3D, (3, 349)).float()
+        shape_2D = torch.transpose(shape_2D, 0, 1).float()
+        shape_3D = torch.transpose(shape_3D, 0, 1).float()
 
-        sample = {'origin_2D': origin_2D, 'origin_3D': origin_3D, 'shape_2D': spherical_2D, 'shape_3D': spherical_3D,
+        sample = {'origin_2D': origin_2D, 'origin_3D': origin_3D, 'shape_2D': shape_2D, 'shape_3D': shape_3D,
                   'offset': offset_list[idx]}
 
         if self.transform:
