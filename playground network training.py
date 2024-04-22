@@ -52,29 +52,29 @@ spherical_3D = torch.unsqueeze(torch.transpose(spherical_3D, 0, 1), dim=0).float
 ans = model.forward(origin_3D, spherical_3D, origin_2D, spherical_2D)
 # print(summary(model, (origin_3D, spherical_3D, origin_2D, spherical_2D)))
 
-deformed = torch.tensor([])
-original = torch.tensor([])
-
-#Add deformation to 3D line
-spherical_3D[:,1:,:] += ans[0]
-
-for idx in range(ans.shape[0]):
-    #Convert back to cartesian
-    cartesian_2D = convert_back(torch.transpose(origin_2D[idx], 0, 1).detach().numpy(), torch.transpose(spherical_2D[idx], 0, 1).detach().numpy()).squeeze()
-    cartesian_3D = convert_back(torch.transpose(origin_3D[idx], 0, 1).detach().numpy(), torch.transpose(spherical_3D[idx], 0, 1).detach().numpy()).squeeze()
-
-    #Project to 2D
-    cartesian_3D[:,2] = np.zeros(cartesian_3D.shape[0])
-
-    original = torch.cat((original, torch.transpose(torch.from_numpy(cartesian_2D).float(), 0, 1)), dim=0)
-    deformed = torch.cat((deformed, torch.transpose(torch.from_numpy(cartesian_3D).float(), 0, 1)), dim=0)
-
-deformed = deformed.unsqueeze(dim=0)
-original = original.unsqueeze(dim=0)
-def mPD_loss(registered, original):
-    loss = torch.sum(torch.mean(torch.sum(torch.abs(registered - original), dim=1), dim=1))
-    return loss
-
-loss = mPD_loss(deformed, original)
-
-print(ans.shape)
+# deformed = torch.tensor([])
+# original = torch.tensor([])
+#
+# #Add deformation to 3D line
+# spherical_3D[:,1:,:] += ans[0]
+#
+# for idx in range(ans.shape[0]):
+#     #Convert back to cartesian
+#     cartesian_2D = convert_back(torch.transpose(origin_2D[idx], 0, 1).detach().numpy(), torch.transpose(spherical_2D[idx], 0, 1).detach().numpy()).squeeze()
+#     cartesian_3D = convert_back(torch.transpose(origin_3D[idx], 0, 1).detach().numpy(), torch.transpose(spherical_3D[idx], 0, 1).detach().numpy()).squeeze()
+#
+#     #Project to 2D
+#     cartesian_3D[:,2] = np.zeros(cartesian_3D.shape[0])
+#
+#     original = torch.cat((original, torch.transpose(torch.from_numpy(cartesian_2D).float(), 0, 1)), dim=0)
+#     deformed = torch.cat((deformed, torch.transpose(torch.from_numpy(cartesian_3D).float(), 0, 1)), dim=0)
+#
+# deformed = deformed.unsqueeze(dim=0)
+# original = original.unsqueeze(dim=0)
+# def mPD_loss(registered, original):
+#     loss = torch.sum(torch.mean(torch.sum(torch.abs(registered - original), dim=1), dim=1))
+#     return loss
+#
+# loss = mPD_loss(deformed, original)
+#
+# print(ans.shape)
