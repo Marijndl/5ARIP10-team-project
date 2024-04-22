@@ -77,12 +77,10 @@ def train_model(model, criterion, optimizer, train_loader, num_epochs=186):
             #Forward pass
             outputs = model(input['origin_3D'], input['shape_3D'], input['origin_2D'], input['shape_2D'])
             # outputs = model(input['origin_3D'].to(device), input['shape_3D'].to(device), input['origin_2D'].to(device), input['shape_2D'].to(device))
-            deformed, original = convert_to_projection(input['origin_3D'], input['shape_3D'], input['origin_2D'], input['shape_2D'], outputs)
+            deformed, original = convert_to_projection(input['origin_3D'], input['shape_3D'], input['origin_2D'], input['shape_2D'], outputs.detach())
 
-            loss = criterion(deformed, original)
+            loss = Variable(criterion(deformed, original), requires_grad=True).to(device)
             # loss = mPD_loss(deformed, original)
-            loss = Variable(loss, requires_grad=True)
-            # print(loss.item())
 
             #Backward pass
             loss.backward()
@@ -90,21 +88,18 @@ def train_model(model, criterion, optimizer, train_loader, num_epochs=186):
             #Optimize
             optimizer.step()
             
-            running_loss += loss.item() * input['origin_3D'].shape[0]
+            running_loss += loss.detach() * input['origin_3D'].shape[0]
 
             #Update progress bar
             loop.set_description(f"Epoch [{epoch+1}/{num_epochs}]")
             loop.set_postfix(loss = loss.item())
 
-        epoch_loss = running_loss / len(train_loader.dataset)
-        # print(f'Epoch {epoch+1}/{num_epochs}, Loss: {epoch_loss:.4f}\n')
-        
     return model
 
 # Load the data:
 # train_dataset = CenterlineDataset(data_dir_2D="D:\\CTA data\\Segments_deformed_2\\", data_dir_3D="D:\\CTA data\\Segments renamed\\")
 train_dataset = CenterlineDatasetSpherical(base_dir="D:\\CTA data\\")
-train_loader = DataLoader(train_dataset, batch_size=512, shuffle=True)
+train_loader = DataLoader(train_dataset, batch_size=256, shuffle=True)
 
 # Train the model
 trained_model = train_model(model, criterion, optimizer, train_loader, num_epochs=25)
