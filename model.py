@@ -111,11 +111,12 @@ class CARNet(nn.Module):
         x2d = self.dual_branch_2d(x2d_origin, x2d_shape)
 
         x = torch.cat((x3d, x2d), dim=1)
-        # print(x.shape)
+#         # print(x.shape)
 
         # Pad the input to the Unet:
         x = torch.cat((x, torch.zeros((x.shape[0], x.shape[1], 3))), dim=2)
-        # print("Padded "+str(x.shape))
+        # x = torch.cat((x, torch.zeros((x.shape[0], x.shape[1], 3)).to(device)), dim=2)
+#         # print("Padded "+str(x.shape))
 
         deformation_field = self.unet_backbone(x)
 
@@ -147,35 +148,35 @@ class UNet(nn.Module):
     def forward(self, x):
         
         conn1 = self.down1(x)
-        print("Conn" + str(conn1.shape))
+        # print("Conn" + str(conn1.shape))
         skip_conn2 = self.down2(conn1)
-        print("Conn2" + str(skip_conn2.shape))
+        # print("Conn2" + str(skip_conn2.shape))
         skip_conn3 = self.down3(skip_conn2)
-        print("Conn3" + str(skip_conn3.shape))
+        # print("Conn3" + str(skip_conn3.shape))
         skip_conn4 = self.down4(skip_conn3)
-        print("Conn4" + str(skip_conn4.shape))
+        # print("Conn4" + str(skip_conn4.shape))
 
         
         x = self.bridge(skip_conn4)
 
-        print("x " + str(x.shape))
-        # print("skip_conn3 " + str(skip_conn3.shape))
-        # print("skip_conn2 " + str(skip_conn2.shape))
+        # print("x " + str(x.shape))
+        # # print("skip_conn3 " + str(skip_conn3.shape))
+        # # print("skip_conn2 " + str(skip_conn2.shape))
         
         x = self.up1(x)
         x = torch.cat((x, skip_conn3), dim=1)
-        print("x after upconv = " + str(x.shape))
+        # print("x after upconv = " + str(x.shape))
         x = self.up2(x)
         x = self.up3(x)
         x = torch.cat((x, skip_conn2), dim=1)
-        print("x after upconv = " + str(x.shape))
+        # print("x after upconv = " + str(x.shape))
         x = self.up4(x)
         x = self.up5(x)
         x = torch.cat((x, conn1), dim=1)
-        print("x after upconv = " + str(x.shape))
+        # print("x after upconv = " + str(x.shape))
         x = self.up6(x)
 
-        print("x after up6 = " + str(x.shape))
+        # print("x after up6 = " + str(x.shape))
         deformation_field = self.output_layer(x)
-        print("output " + str(deformation_field.shape))
+        # print("output " + str(deformation_field.shape))
         return deformation_field

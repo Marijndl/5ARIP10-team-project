@@ -15,7 +15,7 @@ def convert_to_projection(origin_3D, spherical_3D, origin_2D, spherical_2D, defo
     deformed = torch.tensor([])
     original = torch.tensor([])
 
-    spherical_3D = spherical_3D.clone()
+    # spherical_3D = spherical_3D.clone()
 
     # Add deformation to 3D line
     spherical_3D[:, 1:, :] += deformation_field
@@ -77,9 +77,9 @@ def train_model(model, criterion, optimizer, train_loader, num_epochs=186):
             #Forward pass
             outputs = model(input['origin_3D'], input['shape_3D'], input['origin_2D'], input['shape_2D'])
             # outputs = model(input['origin_3D'].to(device), input['shape_3D'].to(device), input['origin_2D'].to(device), input['shape_2D'].to(device))
-            deformed, original = convert_to_projection(input['origin_3D'], input['shape_3D'], input['origin_2D'], input['shape_2D'], outputs.detach())
+            deformed, original = convert_to_projection_old(input['origin_3D'], input['shape_3D'], input['origin_2D'], input['shape_2D'], outputs.detach())
 
-            loss = Variable(criterion(deformed, original), requires_grad=True).to(device)
+            loss = Variable(mPD_loss(deformed, original), requires_grad=True)
             # loss = mPD_loss(deformed, original)
 
             #Backward pass
@@ -99,11 +99,11 @@ def train_model(model, criterion, optimizer, train_loader, num_epochs=186):
 # Load the data:
 # train_dataset = CenterlineDataset(data_dir_2D="D:\\CTA data\\Segments_deformed_2\\", data_dir_3D="D:\\CTA data\\Segments renamed\\")
 train_dataset = CenterlineDatasetSpherical(base_dir="D:\\CTA data\\")
-train_loader = DataLoader(train_dataset, batch_size=256, shuffle=True)
+train_loader = DataLoader(train_dataset, batch_size=512, shuffle=True)
 
 # Train the model
 trained_model = train_model(model, criterion, optimizer, train_loader, num_epochs=5)
 
 # Save the weights
-torch.save(trained_model.state_dict(), "D:\\CTA data\\models\\CAR-Net-256.pth")
+torch.save(trained_model.state_dict(), "D:\\CTA data\\models\\CAR-Net-256-5.pth")
 
