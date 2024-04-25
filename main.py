@@ -59,7 +59,7 @@ model = CARNet()
 # model = CARNet().to(device)
 # model = model.apply(weights_init)
 criterion = nn.MSELoss()  # put loss function we have here
-optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-4)  # Adjust hyperparameters according to paper
+optimizer = optim.Adam(model.parameters(), lr=0.1, weight_decay=1e-4)  # Adjust hyperparameters according to paper
 
 total_params = sum(p.numel() for p in model.parameters())
 print(f"Number of parameters: {total_params}")
@@ -77,10 +77,11 @@ def train_model(model, criterion, optimizer, train_loader, num_epochs=186):
             #Forward pass
             outputs = model(input['origin_3D'], input['shape_3D'], input['origin_2D'], input['shape_2D'])
             # outputs = model(input['origin_3D'].to(device), input['shape_3D'].to(device), input['origin_2D'].to(device), input['shape_2D'].to(device))
-            deformed, original = convert_to_projection_old(input['origin_3D'], input['shape_3D'], input['origin_2D'], input['shape_2D'], outputs.detach())
+            # deformed, original = convert_to_projection_old(input['origin_3D'], input['shape_3D'], input['origin_2D'], input['shape_2D'], outputs.detach())
 
-            loss = Variable(mPD_loss(deformed, original), requires_grad=True)
+            # loss = Variable(mPD_loss(deformed, original), requires_grad=True)
             # loss = mPD_loss(deformed, original)
+            loss = criterion(outputs, input['deformation'])
 
             #Backward pass
             loss.backward()
@@ -105,5 +106,5 @@ train_loader = DataLoader(train_dataset, batch_size=512, shuffle=True)
 trained_model = train_model(model, criterion, optimizer, train_loader, num_epochs=5)
 
 # Save the weights
-torch.save(trained_model.state_dict(), "D:\\CTA data\\models\\CAR-Net-256-5.pth")
+torch.save(trained_model.state_dict(), "D:\\CTA data\\models\\CAR-Net-256-defor.pth")
 
