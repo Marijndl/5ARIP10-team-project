@@ -56,6 +56,7 @@ class CenterlineDatasetSpherical(Dataset):
         self.origin_3D = torch.load(os.path.join(base_dir, "origin_3D.pt"))
         self.shape_2D = torch.load(os.path.join(base_dir, "shape_2D.pt"))
         self.shape_3D = torch.load(os.path.join(base_dir, "shape_3D.pt"))
+        self.offset_list = np.genfromtxt(os.path.join(base_dir, "Offset_deformations.txt"), delimiter=",")
         self.transform = transform
 
     def __len__(self):
@@ -66,9 +67,8 @@ class CenterlineDatasetSpherical(Dataset):
             idx = idx.tolist()
 
         sample = {'origin_2D': self.origin_2D[idx], 'origin_3D': self.origin_3D[idx], 'shape_2D': self.shape_2D[idx],
-                  'shape_3D': self.shape_3D[idx], 'offset': offset_list[idx]}
-        # sample = (self.origin_2D[idx], self.origin_3D[idx], self.shape_2D[idx], self.shape_3D[idx], offset_list[idx])
-
+                  'shape_3D': self.shape_3D[idx], 'offset': self.offset_list[idx]}
+        
         if self.transform:
             sample = self.transform(sample)
 
