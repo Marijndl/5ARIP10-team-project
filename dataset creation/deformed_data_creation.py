@@ -3,7 +3,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import os
 mpl.use('Qt5Agg')
-from sperical_coordinates import *
+from spherical_coordinates import *
 import random
 
 if __name__ == "__main__":
