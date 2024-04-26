@@ -9,7 +9,7 @@ base_dir = "D:\\CTA data\\Segments original\\"
 interp_dir = "D:\\CTA data\\Segments bspline\\"
 file_list = os.listdir(base_dir)
 
-for segment in file_list:
+def interpolate_segment(base_dir, interp_dir, segment):
     data = np.genfromtxt(os.path.join(base_dir, segment), delimiter=",")[1:, 1:4]
     x = data[:, 0]
     y = data[:, 1]
@@ -38,3 +38,11 @@ for segment in file_list:
     header = "X, Y, Z"
     np.savetxt(os.path.join(interp_dir, segment), np.concatenate((x_new, y_new, z_new), axis=1),
                delimiter=",", header=header)
+
+# Loop over all the segment files
+for segment in file_list:
+    try:
+        interpolate_segment(base_dir, interp_dir, segment)
+    except:
+        pass
+
