@@ -44,5 +44,6 @@ for segment in file_list:
     try:
         interpolate_segment(base_dir, interp_dir, segment)
     except:
+        print(f"{segment} failed to interpolate")
         pass
 
