@@ -104,7 +104,7 @@ def extract_centerlines_slicer(label_id: int):
 
 
 if __name__ == "__main__":
-  for file in range(880, 1000):
+  for file in range(2):
     try:
       extract_centerlines_slicer(file+1)
     except:
@@ -115,4 +115,4 @@ if __name__ == "__main__":
 
 #Instructions: Open a cmd prompt and run the following lines:
 #cd C:\Users\20203226\AppData\Local\slicer.org\Slicer 5.6.1
-#Slicer.exe --python-script "C:\Users\20203226\Documents\GitHub\5ARIP10-team-project\extract_centerline.py" --no-splash --no-main-window
+#Slicer.exe --python-script "C:\Users\20203226\Documents\GitHub\5ARIP10-team-project\dataset creation\extract_centerline.py" --no-splash --no-main-window
