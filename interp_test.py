@@ -5,7 +5,7 @@ import torch
 mpl.use('Qt5Agg')
 from scipy import interpolate
 
-data = np.genfromtxt("D:\\CTA data\\Segments renamed\\SegmentPoints_0001_02.csv", delimiter=",")[1:,1:4]
+data = np.genfromtxt("D:\\CTA data\\Segments original\\SegmentPoints_0001_02.csv", delimiter=",")[1:,1:4]
 x = data[:, 0]
 y = data[:, 1]
 z = data[:, 2]
