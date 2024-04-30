@@ -57,6 +57,37 @@ class mPD_loss(nn.Module):
         loss = torch.sum(torch.mean(torch.sum(torch.abs(deformed - original), dim=1), dim=1))
         return loss
 
+def cal_cart_tensor(origin, spherical):
+    r = spherical[:, 0, :].clone()
+    theta = spherical[:, 1, :].clone()
+    phi = spherical[:, 2, :].clone()
+    x = r * torch.sin(theta) * torch.cos(phi)
+    y = r * torch.sin(theta) * torch.sin(phi)
+    z = r * torch.cos(theta)
+    shape = torch.cat((x.unsqueeze(dim=1), y.unsqueeze(dim=1), z.unsqueeze(dim=1)), dim=1)
+    shape.requires_grad_(True)
+    full = torch.cat((origin, shape), dim=2)
+    full.requires_grad_(True)
+    cartesian = torch.matmul(full, torch.triu(torch.ones((x.shape[0], full.shape[2], full.shape[2]))))
+    cartesian.requires_grad_(True)
+    return cartesian
+
+class mPD_loss_2(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, origin_3D, spherical_3D, origin_2D, spherical_2D, deformation_field):
+        # Add deformation to 3D line
+        spherical_3D[:, 1:, :] += deformation_field
+
+        original_cart = cal_cart_tensor(origin_2D, spherical_2D)
+        deformed_cart = cal_cart_tensor(origin_3D, spherical_3D)
+
+        loss = torch.sum(torch.mean(torch.sum(torch.abs(deformed_cart - original_cart), dim=1), dim=1))
+        loss.requires_grad_(True)
+        return loss
+
+torch.autograd.set_detect_anomaly(True)
 torch.cuda.empty_cache()
 
 warnings.filterwarnings("ignore")
@@ -79,7 +110,7 @@ model = CARNet()
 # model = CARNet().to(device)
 # model = model.apply(weights_init)
 # criterion = nn.MSELoss()  # put loss function we have here
-criterion = mPD_loss()
+criterion = mPD_loss_2()
 optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-4)  # Adjust hyperparameters according to paper
 
 total_params = sum(p.numel() for p in model.parameters())
