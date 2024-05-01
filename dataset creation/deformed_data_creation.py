@@ -8,7 +8,7 @@ import random
 
 if __name__ == "__main__":
     # Define the directory where your files are located
-    directory = "D:\\CTA data\\Segments bspline\\"
+    directory = "D:\\CTA data\\Segments bspline 353\\"
 
     file_names = os.listdir(directory)
 
@@ -31,7 +31,7 @@ if __name__ == "__main__":
         # Deformation
         offset = random.uniform(0, 2*np.pi)
         offset_list.append(offset)
-        samples = np.linspace(offset, offset + 2 * np.pi, num=349)
+        samples = np.linspace(offset, offset + 2 * np.pi, num=352)
         deformation = np.sin(samples)
         spherical_coordinates[:, 1] += 0.10 * deformation
         spherical_coordinates[:, 2] += 0.10 * deformation
@@ -43,10 +43,10 @@ if __name__ == "__main__":
 
         # Save to CSV with header
         header = "X, Y"
-        np.savetxt(f"D:\\CTA data\\Segments_deformed_3\\{file[:-4]}_def2D.csv", reconstructed_coordinates[:,:2], delimiter=",", header=header)
+        np.savetxt(f"D:\\CTA data\\Segments_deformed_4\\{file[:-4]}_def2D.csv", reconstructed_coordinates[:,:2], delimiter=",", header=header)
 
     # Save the offsets to a .txt file:
-    with open(f"D:\\CTA data\\Offset_deformations_interp.txt", 'w') as file:
+    with open(f"D:\\CTA data\\Offset_deformations_interp_353.txt", 'w') as file:
         for item in offset_list:
             file.write(str(item) + '\n')
 

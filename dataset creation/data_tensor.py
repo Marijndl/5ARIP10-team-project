@@ -9,9 +9,9 @@ from spherical_coordinates import *
 
 
 #Load data
-directory_2D = "D:\\CTA data\\Segments_deformed_3\\"
+directory_2D = "D:\\CTA data\\Segments_deformed_4\\"
 file_names_2D = os.listdir(directory_2D)
-directory_3D = "D:\\CTA data\\Segments bspline\\"
+directory_3D = "D:\\CTA data\\Segments bspline 353\\"
 file_names_3D = os.listdir(directory_3D)
 
 org_2D = torch.tensor([])
@@ -55,8 +55,8 @@ for idx in range(lengthhh):
         sha_2D = torch.cat((sha_2D, shape_2D), dim=0)
         sha_3D = torch.cat((sha_3D, shape_3D), dim=0)
 
-torch.save(org_2D, 'D:\\CTA data\\origin_2D_interp.pt')
-torch.save(org_3D, 'D:\\CTA data\\origin_3D_interp.pt')
-torch.save(sha_2D, 'D:\\CTA data\\shape_2D_interp.pt')
-torch.save(sha_3D, 'D:\\CTA data\\shape_3D_interp.pt')
+torch.save(org_2D, 'D:\\CTA data\\origin_2D_interp_353.pt')
+torch.save(org_3D, 'D:\\CTA data\\origin_3D_interp_353.pt')
+torch.save(sha_2D, 'D:\\CTA data\\shape_2D_interp_353.pt')
+torch.save(sha_3D, 'D:\\CTA data\\shape_3D_interp_353.pt')
 print(f"Done, total nans: {total_nans}")
