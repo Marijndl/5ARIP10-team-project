@@ -119,8 +119,9 @@ class CARNet(nn.Module):
 #         # print("Padded "+str(x.shape))
 
         deformation_field = self.unet_backbone(x)
+        deformation_field_output = deformation_field.clone()
 
-        return deformation_field[:,:,:-3]
+        return deformation_field_output[:,:,:-3]
 
 class UNet(nn.Module):
     def __init__(self):
