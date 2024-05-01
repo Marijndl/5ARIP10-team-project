@@ -6,7 +6,7 @@ from scipy import interpolate
 import os
 
 base_dir = "D:\\CTA data\\Segments original\\"
-interp_dir = "D:\\CTA data\\Segments bspline\\"
+interp_dir = "D:\\CTA data\\Segments bspline 353\\"
 file_list = os.listdir(base_dir)
 
 def interpolate_segment(base_dir, interp_dir, segment):
@@ -19,7 +19,7 @@ def interpolate_segment(base_dir, interp_dir, segment):
     t = np.arange(x.shape[0])
 
     # Number of points on the interpolated curve
-    num_points = 350
+    num_points = 353
 
     # Perform B-spline interpolation in 3D
     tck_x = interpolate.splrep(t, x, s=0, k=3)
