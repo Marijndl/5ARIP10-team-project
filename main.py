@@ -61,15 +61,26 @@ def cal_cart_tensor(origin, spherical):
     r = spherical[:, 0, :].clone()
     theta = spherical[:, 1, :].clone()
     phi = spherical[:, 2, :].clone()
+
+    r.retain_grad()
+    theta.retain_grad()
+    phi.retain_grad()
+
     x = r * torch.sin(theta) * torch.cos(phi)
     y = r * torch.sin(theta) * torch.sin(phi)
     z = r * torch.cos(theta)
+
+    x.retain_grad()
+    y.retain_grad()
+    z.retain_grad()
+
     shape = torch.cat((x.unsqueeze(dim=1), y.unsqueeze(dim=1), z.unsqueeze(dim=1)), dim=1)
-    shape.requires_grad_(True)
-    full = torch.cat((origin, shape), dim=2)
-    full.requires_grad_(True)
+    shape.retain_grad()
+    full = torch.cat((origin.clone(), shape), dim=2)
+    full.retain_grad()
+
     cartesian = torch.matmul(full, torch.triu(torch.ones((x.shape[0], full.shape[2], full.shape[2]))))
-    cartesian.requires_grad_(True)
+    cartesian.retain_grad()
     return cartesian
 
 class mPD_loss_2(nn.Module):
@@ -78,13 +89,14 @@ class mPD_loss_2(nn.Module):
 
     def forward(self, origin_3D, spherical_3D, origin_2D, spherical_2D, deformation_field):
         # Add deformation to 3D line
-        spherical_3D[:, 1:, :] += deformation_field
+        spherical_3D_deformed = spherical_3D.clone()
+        spherical_3D_deformed[:, 1:, :] = spherical_3D_deformed[:, 1:, :] + deformation_field
 
         original_cart = cal_cart_tensor(origin_2D, spherical_2D)
-        deformed_cart = cal_cart_tensor(origin_3D, spherical_3D)
+        deformed_cart = cal_cart_tensor(origin_3D, spherical_3D_deformed)
 
         loss = torch.sum(torch.mean(torch.sum(torch.abs(deformed_cart - original_cart), dim=1), dim=1))
-        loss.requires_grad_(True)
+        loss.retain_grad()
         return loss
 
 torch.autograd.set_detect_anomaly(True)
@@ -108,7 +120,7 @@ def weights_init(m):
 
 model = CARNet()
 # model = CARNet().to(device)
-# model = model.apply(weights_init)
+model = model.apply(weights_init)
 # criterion = nn.MSELoss()  # put loss function we have here
 criterion = mPD_loss_2()
 optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-4)  # Adjust hyperparameters according to paper
@@ -116,7 +128,7 @@ optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-4)  # Adjus
 total_params = sum(p.numel() for p in model.parameters())
 print(f"Number of parameters: {total_params}")
 
-init_weigts = list(model.parameters())[0].data
+init_weigts = list(model.parameters())[-1].data
 print("Initial weights:", init_weigts)
 
 def train_model(model, criterion, optimizer, train_loader, num_epochs=186):
@@ -130,14 +142,80 @@ def train_model(model, criterion, optimizer, train_loader, num_epochs=186):
             optimizer.zero_grad()
 
             #Forward pass
+            input['origin_3D'].requires_grad_(True)
+            input['shape_3D'].requires_grad_(True)
+            input['origin_2D'].requires_grad_(True)
+            input['shape_2D'].requires_grad_(True)
+            input['origin_3D'].retain_grad()
+            input['shape_3D'].retain_grad()
+            input['origin_2D'].retain_grad()
+            input['shape_2D'].retain_grad()
             outputs = model(input['origin_3D'], input['shape_3D'], input['origin_2D'], input['shape_2D'])
+            outputs.requires_grad_(True)
+            outputs.retain_grad()
             # outputs = model(input['origin_3D'].to(device), input['shape_3D'].to(device), input['origin_2D'].to(device), input['shape_2D'].to(device))
             # deformed, original = convert_to_projection_old(input['origin_3D'], input['shape_3D'], input['origin_2D'], input['shape_2D'], outputs.detach())
 
-            loss = criterion(input['origin_3D'], input['shape_3D'], input['origin_2D'], input['shape_2D'], outputs)
+            output_copy = outputs.clone()
+            output_copy.retain_grad()
+            spherical_3D_deformed = input['shape_3D'].clone()
+            spherical_3D_deformed[:, 1:, :] = torch.add(spherical_3D_deformed[:, 1:, :], output_copy)
+
+            r = spherical_3D_deformed[:, 0, :].clone()
+            theta = spherical_3D_deformed[:, 1, :].clone()
+            phi = spherical_3D_deformed[:, 2, :].clone()
+
+            r.retain_grad()
+            theta.retain_grad()
+            phi.retain_grad()
+
+            x = r * torch.sin(theta) * torch.cos(phi)
+            y = r * torch.sin(theta) * torch.sin(phi)
+            z = r * torch.cos(theta)
+
+            x.retain_grad()
+            y.retain_grad()
+            z.retain_grad()
+
+            shape = torch.cat((x.unsqueeze(dim=1), y.unsqueeze(dim=1), z.unsqueeze(dim=1)), dim=1)
+            shape.retain_grad()
+            full = torch.cat((input['origin_3D'].clone(), shape), dim=2)
+            full.retain_grad()
+
+            original_cart = torch.matmul(full, torch.triu(torch.ones((x.shape[0], full.shape[2], full.shape[2]))))
+            original_cart.retain_grad()
+
+            # ___--------------------------------------------------
+
+            r2 = input['shape_2D'][:, 0, :].clone()
+            theta2 = input['shape_2D'][:, 1, :].clone()
+            phi2 = input['shape_2D'][:, 2, :].clone()
+
+            r2.retain_grad()
+            theta2.retain_grad()
+            phi2.retain_grad()
+
+            x2 = r2 * torch.sin(theta2) * torch.cos(phi2)
+            y2 = r2 * torch.sin(theta2) * torch.sin(phi2)
+            z2 = r2 * torch.cos(theta2)
+
+            x2.retain_grad()
+            y2.retain_grad()
+            z2.retain_grad()
+
+            shape2 = torch.cat((x2.unsqueeze(dim=1), y2.unsqueeze(dim=1), z2.unsqueeze(dim=1)), dim=1)
+            shape2.retain_grad()
+            full2 = torch.cat((input['origin_2D'].clone(), shape2), dim=2)
+            full2.retain_grad()
+
+            deformed_cart = torch.matmul(full2, torch.triu(torch.ones((x.shape[0], full.shape[2], full.shape[2]))))
+            deformed_cart.retain_grad()
+
+            loss = torch.sum(torch.mean(torch.sum(torch.abs(deformed_cart - original_cart), dim=1), dim=1))
 
             #Backward pass
             loss.backward()
+            print(outputs.grad.shape)
 
             #Optimize
             optimizer.step()
@@ -147,7 +225,7 @@ def train_model(model, criterion, optimizer, train_loader, num_epochs=186):
             #Update progress bar
             loop.set_description(f"Epoch [{epoch+1}/{num_epochs}]")
             loop.set_postfix(loss = loss.item())
-            print("Updated weights:", init_weigts - list(model.parameters())[0].data)
+            print("Updated weights:", init_weigts - list(model.parameters())[-1].data)
 
     return model
 
