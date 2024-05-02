@@ -46,8 +46,8 @@ class mPD_loss_2(nn.Module):
         original_cart = self.cartesian_tensor(origin_2D, spherical_2D)
 
         # Calculate the loss
-        # loss = torch.sum(torch.mean(torch.sum(torch.abs(deformed_cart - original_cart), dim=1), dim=1))
-        loss = torch.sum(torch.mean(torch.sqrt(torch.sum(torch.square(spherical_2D - spherical_3D), dim=1)), dim=1), dim=0)
+        loss = torch.sum(torch.mean(torch.sum(torch.abs(deformed_cart - original_cart), dim=1), dim=1))
+        # loss = torch.sum(torch.mean(torch.sqrt(torch.sum(torch.square(deformed_cart - original_cart), dim=1)), dim=1), dim=0)
         loss.retain_grad()
         return loss
 
@@ -64,8 +64,6 @@ def weights_init(m):
 
     elif isinstance(m, nn.ConvTranspose1d):
         nn.init.normal_(m.weight.data, mean=0.0, std=1)
-
-
 
 model = CARNet()
 model = CARNet().to(device)
