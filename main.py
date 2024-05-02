@@ -32,7 +32,7 @@ class mPD_loss_2(nn.Module):
         full = torch.cat((origin.clone(), shape_cartesian), dim=2)
         full.retain_grad()
 
-        cartesian = torch.matmul(full, torch.triu(torch.ones((x.shape[0], full.shape[2], full.shape[2]))))
+        cartesian = torch.matmul(full, torch.triu(torch.ones((x.shape[0], full.shape[2], full.shape[2]))).to(device))
         cartesian.retain_grad()
         return cartesian
 
@@ -65,9 +65,8 @@ def weights_init(m):
 
 
 model = CARNet()
-# model = CARNet().to(device)
+model = CARNet().to(device)
 model = model.apply(weights_init)
-# criterion = nn.MSELoss()  # put loss function we have here
 criterion = mPD_loss_2()
 optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-4)  # Adjust hyperparameters according to paper
 
@@ -95,27 +94,24 @@ def train_model(model, criterion, optimizer, train_loader, num_epochs=186):
             input['shape_3D'].retain_grad()
             input['origin_2D'].retain_grad()
             input['shape_2D'].retain_grad()
-            outputs = model(input['origin_3D'], input['shape_3D'], input['origin_2D'], input['shape_2D'])
+            outputs = model(input['origin_3D'].to(device), input['shape_3D'].to(device), input['origin_2D'].to(device), input['shape_2D'].to(device))
             outputs.requires_grad_(True)
             outputs.retain_grad()
 
             #Convert to cartesian and calculate loss:
-            loss = criterion(input['origin_3D'], input['shape_3D'], input['origin_2D'], input['shape_2D'], outputs)
+            loss = criterion(input['origin_3D'].to(device), input['shape_3D'].to(device), input['origin_2D'].to(device), input['shape_2D'].to(device), outputs)
 
             #Backward pass
             loss.backward()
-            print(outputs.grad.shape)
 
             #Optimize
             optimizer.step()
-            print(list(model.parameters())[-1].grad)
-            
+
             running_loss += loss.clone().item() * input['origin_3D'].shape[0]
 
             #Update progress bar
             loop.set_description(f"Epoch [{epoch+1}/{num_epochs}]")
             loop.set_postfix(loss=loss.item())
-            print("Updated weights:", list(model.parameters())[-1].clone().detach())
 
     return model
 
