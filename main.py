@@ -41,10 +41,13 @@ class mPD_loss_2(nn.Module):
         spherical_3D_deformed = spherical_3D.clone()
         spherical_3D_deformed[:, 1:, :] = torch.add(spherical_3D_deformed[:, 1:, :], deformation_field)
 
+        # Convert back to cartesian domain
         deformed_cart = self.cartesian_tensor(origin_3D, spherical_3D_deformed)
         original_cart = self.cartesian_tensor(origin_2D, spherical_2D)
 
-        loss = torch.sum(torch.mean(torch.sum(torch.abs(deformed_cart - original_cart), dim=1), dim=1))
+        # Calculate the loss
+        # loss = torch.sum(torch.mean(torch.sum(torch.abs(deformed_cart - original_cart), dim=1), dim=1))
+        loss = torch.sum(torch.mean(torch.sqrt(torch.sum(torch.square(spherical_2D - spherical_3D), dim=1)), dim=1), dim=0)
         loss.retain_grad()
         return loss
 
@@ -117,11 +120,11 @@ def train_model(model, criterion, optimizer, train_loader, num_epochs=186):
 
 # Load the data:
 train_dataset = CenterlineDatasetSpherical(base_dir="D:\\CTA data\\")
-train_loader = DataLoader(train_dataset, batch_size=512, shuffle=True)
+train_loader = DataLoader(train_dataset, batch_size=256, shuffle=True)
 
 # Train the model
-trained_model = train_model(model, criterion, optimizer, train_loader, num_epochs=5)
+trained_model = train_model(model, criterion, optimizer, train_loader, num_epochs=20)
 
 # Save the weights
-torch.save(trained_model.state_dict(), "D:\\CTA data\\models\\CAR-Net-256-defor.pth")
+torch.save(trained_model.state_dict(), "D:\\CTA data\\models\\CAR-Net-256-20.pth")
 
