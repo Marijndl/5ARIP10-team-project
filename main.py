@@ -123,12 +123,12 @@ model = CARNet()
 model = model.apply(weights_init)
 # criterion = nn.MSELoss()  # put loss function we have here
 criterion = mPD_loss_2()
-optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-4)  # Adjust hyperparameters according to paper
+optimizer = optim.Adam(model.parameters(), lr=1, weight_decay=1e-4)  # Adjust hyperparameters according to paper
 
 total_params = sum(p.numel() for p in model.parameters())
 print(f"Number of parameters: {total_params}")
 
-init_weigts = list(model.parameters())[-1].data
+init_weigts = list(model.parameters())[-1].clone().detach()
 print("Initial weights:", init_weigts)
 
 def train_model(model, criterion, optimizer, train_loader, num_epochs=186):
@@ -156,10 +156,8 @@ def train_model(model, criterion, optimizer, train_loader, num_epochs=186):
             # outputs = model(input['origin_3D'].to(device), input['shape_3D'].to(device), input['origin_2D'].to(device), input['shape_2D'].to(device))
             # deformed, original = convert_to_projection_old(input['origin_3D'], input['shape_3D'], input['origin_2D'], input['shape_2D'], outputs.detach())
 
-            output_copy = outputs.clone()
-            output_copy.retain_grad()
             spherical_3D_deformed = input['shape_3D'].clone()
-            spherical_3D_deformed[:, 1:, :] = torch.add(spherical_3D_deformed[:, 1:, :], output_copy)
+            spherical_3D_deformed[:, 1:, :] = torch.add(spherical_3D_deformed[:, 1:, :], outputs)
 
             r = spherical_3D_deformed[:, 0, :].clone()
             theta = spherical_3D_deformed[:, 1, :].clone()
@@ -215,17 +213,18 @@ def train_model(model, criterion, optimizer, train_loader, num_epochs=186):
 
             #Backward pass
             loss.backward()
-            print(outputs.grad.shape)
+            # print(outputs.grad.shape)
 
             #Optimize
             optimizer.step()
+            # print(list(model.parameters())[-1].grad)
             
-            running_loss += loss.detach() * input['origin_3D'].shape[0]
+            # running_loss += loss.detach() * input['origin_3D'].shape[0]
 
             #Update progress bar
             loop.set_description(f"Epoch [{epoch+1}/{num_epochs}]")
-            loop.set_postfix(loss = loss.item())
-            print("Updated weights:", init_weigts - list(model.parameters())[-1].data)
+            loop.set_postfix(loss=loss.item())
+            print("Updated weights:", list(model.parameters())[-1].clone().detach())
 
     return model
 
