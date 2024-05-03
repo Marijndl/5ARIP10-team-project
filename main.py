@@ -116,13 +116,15 @@ def train_model(model, criterion, optimizer, train_loader, num_epochs=186):
 
     return model
 
-# Load the data:
-train_dataset = CenterlineDatasetSpherical(base_dir="D:\\CTA data\\")
-train_loader = DataLoader(train_dataset, batch_size=256, shuffle=True)
+if __name__ == "__main__":
 
-# Train the model
-trained_model = train_model(model, criterion, optimizer, train_loader, num_epochs=20)
+    # Load the data:
+    train_dataset = CenterlineDatasetSpherical(base_dir="D:\\CTA data\\")
+    train_loader = DataLoader(train_dataset, batch_size=256, shuffle=True)
 
-# Save the weights
-torch.save(trained_model.state_dict(), "D:\\CTA data\\models\\CAR-Net-256-20.pth")
+    # Train the model
+    trained_model = train_model(model, criterion, optimizer, train_loader, num_epochs=20)
+
+    # Save the weights
+    torch.save(trained_model.state_dict(), "D:\\CTA data\\models\\CAR-Net-256-20.pth")
 
