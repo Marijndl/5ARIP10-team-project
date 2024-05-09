@@ -5,7 +5,7 @@ import torch
 mpl.use('Qt5Agg')
 
 
-def convert_to_spherical(coordinates: np.array):
+def convert_to_spherical(coordinates: np.array, tensor=False):
     """
         Convert Cartesian coordinates to spherical coordinates.
 
@@ -29,8 +29,10 @@ def convert_to_spherical(coordinates: np.array):
         phi = np.sign(y)*np.arccos(x/(np.sqrt(x**2+y**2)))
         spherical_coordinates.append([r, theta, phi])
 
-    # return origin_tensor, np.array(spherical_coordinates)
-    return torch.from_numpy(origin_tensor).float(), torch.from_numpy(np.array(spherical_coordinates)).float()
+    if not tensor:
+        return origin_tensor, np.array(spherical_coordinates)
+    else:
+        return torch.from_numpy(origin_tensor).float(), torch.from_numpy(np.array(spherical_coordinates)).float()
 
 def convert_back(origin_tensor: np.array, spherical_coordinates: np.array) -> np.array:
     """

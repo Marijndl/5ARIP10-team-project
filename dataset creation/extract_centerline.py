@@ -1,4 +1,5 @@
 import ExtractCenterline
+import re
 extractLogic = ExtractCenterline.ExtractCenterlineLogic()
 
 def resample_segment(segment, label_id, sample_number = 350):
@@ -75,10 +76,16 @@ def save_centerlines_to_file(label_id):
 
   for i, segment in enumerate(vessel_segements):
     # Resample curve
-    resampledCurve = resample_segment(segment, label_id)
+    # resampledCurve = resample_segment(segment, label_id)
 
     # Save new curve to a file.
-    slicer.modules.markups.logic().ExportControlPointsToCSV(resampledCurve, f"D:\\CTA data\\Segments\\SegmentPoints_{label_id}_{i}.csv")
+    # Pad the numbers with leading zeros
+    label_padded = str(label_id).zfill(4)
+
+    # Pad
+    i_padded = str(i).zfill(2)
+
+    slicer.modules.markups.logic().ExportControlPointsToCSV(segment, f"D:\\CTA data\\Segments original\\SegmentPoints_{label_padded}_{i_padded}.csv")
 
 def extract_centerlines_slicer(label_id: int):
   # Clear up the scene
@@ -104,7 +111,7 @@ def extract_centerlines_slicer(label_id: int):
 
 
 if __name__ == "__main__":
-  for file in range(880, 1000):
+  for file in range(999,1000):
     try:
       extract_centerlines_slicer(file+1)
     except:
@@ -115,4 +122,4 @@ if __name__ == "__main__":
 
 #Instructions: Open a cmd prompt and run the following lines:
 #cd C:\Users\20203226\AppData\Local\slicer.org\Slicer 5.6.1
-#Slicer.exe --python-script "C:\Users\20203226\Documents\GitHub\5ARIP10-team-project\extract_centerline.py" --no-splash --no-main-window
+#Slicer.exe --python-script "C:\Users\20203226\Documents\GitHub\5ARIP10-team-project\dataset creation\extract_centerline.py" --no-splash --no-main-window
