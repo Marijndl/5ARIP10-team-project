@@ -1,72 +1,93 @@
 import torch
 from torch import nn, optim
-from torch.utils.data import DataLoader, Dataset
-from torchvision import transforms
 from model import CARNet
-import numpy as np
-import os
 from spherical_coordinates import *
-from torch.autograd import Variable
 from tqdm import tqdm
-import warnings
 from data_loaders import *
+from torch.utils.data import DataLoader
+from soft_dtw_cuda import SoftDTW
 
-def convert_to_projection(origin_3D, spherical_3D, origin_2D, spherical_2D, deformation_field):
-    deformed = torch.tensor([])
-    original = torch.tensor([])
+class mPD_loss_2(nn.Module):
+    def __init__(self, gamma=1.0, smooth_lambda=10):
+        super().__init__()
+        self.gamma = gamma
+        self.smooth_lambda = smooth_lambda
+        self.dtw = SoftDTW(use_cuda=True,normalize=True,gamma=gamma)
 
-    # spherical_3D = spherical_3D.clone()
+    def cartesian_tensor(self, origin, spherical):
+        r = spherical[:, 0, :].clone()
+        theta = spherical[:, 1, :].clone()
+        phi = spherical[:, 2, :].clone()
 
-    # Add deformation to 3D line
-    spherical_3D[:, 1:, :] += deformation_field
+        r.retain_grad()
+        theta.retain_grad()
+        phi.retain_grad()
 
-    for idx in range(deformation_field.shape[0]):
-        # Convert back to cartesian
-        cartesian_2D = convert_back_tensors(origin_2D[idx].detach(), spherical_2D[idx].detach())
-        cartesian_3D = convert_back_tensors(origin_3D[idx].detach(), spherical_3D[idx].detach())
+        x = r * torch.sin(theta) * torch.sin(phi) # should be sin sin
+        y = r * torch.sin(theta) * torch.cos(phi) # should be sin cos
+        z = r * torch.cos(theta)
 
-        # Project to 2D
-        cartesian_3D[2, :] = torch.zeros(cartesian_3D.shape[1])
+        x.retain_grad()
+        y.retain_grad()
+        z.retain_grad()
 
-        original = torch.cat((original, cartesian_2D.unsqueeze(dim=0)), dim=0)
-        deformed = torch.cat((deformed, cartesian_3D.unsqueeze(dim=0)), dim=0)
+        shape_cartesian = torch.cat((x.unsqueeze(dim=1), y.unsqueeze(dim=1), z.unsqueeze(dim=1)), dim=1)
+        shape_cartesian.retain_grad()
+        full = torch.cat((origin.clone(), shape_cartesian), dim=2)
+        full.retain_grad()
 
-    return deformed, original
+        cartesian = torch.matmul(full, torch.triu(torch.ones((x.shape[0], full.shape[2], full.shape[2]))).to(device))
+        cartesian.retain_grad()
+        return cartesian
 
-def mPD_loss(deformed, original):
-    loss = torch.sum(torch.mean(torch.sum(torch.abs(deformed - original), dim=1), dim=1))
-    return loss
+    def forward(self, origin_3D, spherical_3D, origin_2D, spherical_2D, deformation_field):
+        # Add deformation to 3D line
+        spherical_3D_deformed = spherical_3D.clone()
+        spherical_3D_deformed[:, 1:, :] = torch.add(spherical_3D_deformed[:, 1:, :], deformation_field)
 
+        deformed_cart = self.cartesian_tensor(origin_3D, spherical_3D_deformed)
+        original_cart = self.cartesian_tensor(origin_2D, spherical_2D)
+        
+        # Calculate Soft-DTW loss
+        dtw_loss = self.dtw(deformed_cart, original_cart)
+        # Lsmooth: Calculate smoothness of the deformation field
+        grad_deformation = torch.autograd.grad(outputs=deformation_field.sum(), inputs=deformation_field, create_graph=True)[0]
+        Lsmooth = torch.sum(grad_deformation ** 2)
+        # Total loss calculation
+        loss = torch.mean(dtw_loss + (self.smooth_lambda * Lsmooth))
+        loss.retain_grad()
+        return loss
+    
+   
+
+torch.autograd.set_detect_anomaly(True)
 torch.cuda.empty_cache()
-
-warnings.filterwarnings("ignore")
-offset_list = np.genfromtxt("D:\\CTA data\\Offset_deformations.txt", delimiter=",")
 
 #set device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-#Initialize model:
+#device = torch.device("cpu")
+#Initialize model weights:
 def weights_init(m):
     if isinstance(m, nn.Conv1d):
         nn.init.normal_(m.weight.data, mean=0.0, std=1)
-        # xavier(m.bias.data)
+
     elif isinstance(m, nn.ConvTranspose1d):
         nn.init.normal_(m.weight.data, mean=0.0, std=1)
-        # xavier(m.bias.data)
-
 
 model = CARNet()
-# model = CARNet().to(device)
-# model = model.apply(weights_init)
-criterion = nn.MSELoss()  # put loss function we have here
+model = CARNet().to(device)
+model = model.apply(weights_init)
+criterion = mPD_loss_2()
 optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-4)  # Adjust hyperparameters according to paper
 
 total_params = sum(p.numel() for p in model.parameters())
 print(f"Number of parameters: {total_params}")
 
+init_weigts = list(model.parameters())[-1].clone().detach()
+print("Initial weights:", init_weigts)
+
 def train_model(model, criterion, optimizer, train_loader, num_epochs=186):
     for epoch in range(num_epochs):
-        # model.train()
         running_loss = 0.0
 
         loop = tqdm(enumerate(train_loader), total=len(train_loader), leave=True)
@@ -75,35 +96,43 @@ def train_model(model, criterion, optimizer, train_loader, num_epochs=186):
             optimizer.zero_grad()
 
             #Forward pass
-            outputs = model(input['origin_3D'], input['shape_3D'], input['origin_2D'], input['shape_2D'])
-            # outputs = model(input['origin_3D'].to(device), input['shape_3D'].to(device), input['origin_2D'].to(device), input['shape_2D'].to(device))
-            deformed, original = convert_to_projection_old(input['origin_3D'], input['shape_3D'], input['origin_2D'], input['shape_2D'], outputs.detach())
+            input['origin_3D'].requires_grad_(True)
+            input['shape_3D'].requires_grad_(True)
+            input['origin_2D'].requires_grad_(True)
+            input['shape_2D'].requires_grad_(True)
+            input['origin_3D'].retain_grad()
+            input['shape_3D'].retain_grad()
+            input['origin_2D'].retain_grad()
+            input['shape_2D'].retain_grad()
+            outputs = model(input['origin_3D'].to(device), input['shape_3D'].to(device), input['origin_2D'].to(device), input['shape_2D'].to(device))
+            outputs.requires_grad_(True)
+            outputs.retain_grad()
 
-            loss = Variable(mPD_loss(deformed, original), requires_grad=True)
-            # loss = mPD_loss(deformed, original)
-
+            #Convert to cartesian and calculate loss:
+            loss = criterion(input['origin_3D'].to(device), input['shape_3D'].to(device), input['origin_2D'].to(device), input['shape_2D'].to(device), outputs)
+            
             #Backward pass
             loss.backward()
 
             #Optimize
             optimizer.step()
-            
-            running_loss += loss.detach() * input['origin_3D'].shape[0]
+
+            running_loss += loss.clone().item() * input['origin_3D'].shape[0]
 
             #Update progress bar
             loop.set_description(f"Epoch [{epoch+1}/{num_epochs}]")
-            loop.set_postfix(loss = loss.item())
+            loop.set_postfix(loss=loss.item())
 
     return model
 
-# Load the data:
-# train_dataset = CenterlineDataset(data_dir_2D="D:\\CTA data\\Segments_deformed_2\\", data_dir_3D="D:\\CTA data\\Segments renamed\\")
-train_dataset = CenterlineDatasetSpherical(base_dir="D:\\CTA data\\")
-train_loader = DataLoader(train_dataset, batch_size=512, shuffle=True)
+if __name__ == "__main__":
 
-# Train the model
-trained_model = train_model(model, criterion, optimizer, train_loader, num_epochs=5)
+    # Load the data:
+    train_dataset = CenterlineDatasetSpherical(base_dir="D:\\CTA data\\")
+    train_loader = DataLoader(train_dataset, batch_size=512, shuffle=True)
 
-# Save the weights
-torch.save(trained_model.state_dict(), "D:\\CTA data\\models\\CAR-Net-256-5.pth")
+    # Train the model
+    trained_model = train_model(model, criterion, optimizer, train_loader, num_epochs=10)
 
+    # Save the weights
+    torch.save(trained_model.state_dict(), "D:\\CTA data\\models\\CAR-Net-256-22.pth")
