@@ -114,13 +114,13 @@ class CARNet(nn.Module):
 #         # print(x.shape)
 
         # Pad the input to the Unet:
-        x = torch.cat((x, torch.zeros((x.shape[0], x.shape[1], 3))), dim=2)
+        # x = torch.cat((x, torch.zeros((x.shape[0], x.shape[1], 3))), dim=2)
         # x = torch.cat((x, torch.zeros((x.shape[0], x.shape[1], 3)).to(device)), dim=2)
 #         # print("Padded "+str(x.shape))
 
         deformation_field = self.unet_backbone(x)
 
-        return deformation_field[:,:,:-3]
+        return deformation_field
 
 class UNet(nn.Module):
     def __init__(self):

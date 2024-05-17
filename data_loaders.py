@@ -1,6 +1,7 @@
 import os
-from torch.utils.data import Dataset
+from torch.utils.data import DataLoader, Dataset
 from spherical_coordinates import *
+import torch
 
 offset_list = np.genfromtxt("D:\\CTA data\\Offset_deformations.txt", delimiter=",")
 
@@ -52,10 +53,11 @@ class CenterlineDataset(Dataset):
 
 class CenterlineDatasetSpherical(Dataset):
     def __init__(self, base_dir, transform=None):
-        self.origin_2D = torch.load(os.path.join(base_dir, "origin_2D.pt"))
-        self.origin_3D = torch.load(os.path.join(base_dir, "origin_3D.pt"))
-        self.shape_2D = torch.load(os.path.join(base_dir, "shape_2D.pt"))
-        self.shape_3D = torch.load(os.path.join(base_dir, "shape_3D.pt"))
+        self.origin_2D = torch.load(os.path.join(base_dir, "origin_2D_interp_353.pt"))
+        self.origin_3D = torch.load(os.path.join(base_dir, "origin_3D_interp_353.pt"))
+        self.shape_2D = torch.load(os.path.join(base_dir, "shape_2D_interp_353.pt"))
+        self.shape_3D = torch.load(os.path.join(base_dir, "shape_3D_interp_353.pt"))
+        self.offset_list = np.genfromtxt(os.path.join(base_dir, "Offset_deformations.txt"), delimiter=",")
         self.transform = transform
 
     def __len__(self):
@@ -65,11 +67,24 @@ class CenterlineDatasetSpherical(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
+        #Calculate deformation:
+        samples = torch.linspace(self.offset_list[idx], self.offset_list[idx] + 2 * torch.pi, steps=349)
+        deformation = torch.cat((torch.unsqueeze(torch.sin(samples), dim=0), torch.unsqueeze(torch.sin(samples), dim=0)), dim=0)
+
         sample = {'origin_2D': self.origin_2D[idx], 'origin_3D': self.origin_3D[idx], 'shape_2D': self.shape_2D[idx],
-                  'shape_3D': self.shape_3D[idx], 'offset': offset_list[idx]}
-        # sample = (self.origin_2D[idx], self.origin_3D[idx], self.shape_2D[idx], self.shape_3D[idx], offset_list[idx])
+                  'shape_3D': self.shape_3D[idx], 'offset': self.offset_list[idx], 'deformation': deformation}
 
         if self.transform:
             sample = self.transform(sample)
 
         return sample
+
+if __name__ == '__main__':
+    train_dataset = CenterlineDatasetSpherical(base_dir="D:\\CTA data\\")
+    train_loader = DataLoader(train_dataset, batch_size=512, shuffle=True)
+
+    data_iter = iter(train_loader)
+    sample = next(data_iter)
+
+    pass
+
