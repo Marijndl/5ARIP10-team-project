@@ -18,7 +18,6 @@ The origin dataset is [ImageCAS](https://github.com/XiaoweiXu/ImageCAS-A-Large-S
 
   `Slicer.exe --python-script "C:\data_creation\extract_centerline.py" --no-splash --no-main-window 'd:/CTA data/1-1000' 'D:\\CTA data\\Segments'`
 
-  *(change the py file to take path argument)
 
 **Step 3**: Smooth the dataset
 
