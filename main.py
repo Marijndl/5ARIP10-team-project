@@ -4,7 +4,7 @@ from model import CARNet
 from spherical_coordinates import *
 from tqdm import tqdm
 from data_loaders import *
-
+import torch.autograd
 
 class mPD_loss_2(nn.Module):
     def __init__(self):
@@ -46,8 +46,26 @@ class mPD_loss_2(nn.Module):
         original_cart = self.cartesian_tensor(origin_2D, spherical_2D)
 
         # Calculate the loss
-        # loss = torch.sum(torch.mean(torch.sum(torch.abs(deformed_cart - original_cart), dim=1), dim=1))
-        loss = torch.sum(torch.mean(torch.sqrt(torch.sum(torch.square(spherical_2D - spherical_3D), dim=1)), dim=1), dim=0)
+        diff = deformed_cart - original_cart
+        # print(diff.shape)
+        epsilon = 1e-8
+        distances = torch.sqrt(torch.sum(diff**2, dim=1)  + epsilon)
+        # print()
+        # print('**********************')
+        # print(distances)
+        # # print("Max of distances:", torch.max(distances))
+        # # print("Min of distances:", torch.min(distances))
+        # # print("Mean of distances:", torch.mean(distances)) 
+        # # print("Is there any nan in distances?", torch.isnan(distances).any())
+        # # print(distances.shape)
+        mean_distances = torch.mean(distances, dim=1)
+        # print('**********************')
+        # print(mean_distances)
+        # print(mean_distances.shape)        
+        loss = torch.mean(mean_distances)
+
+        # print(loss)
+
         loss.retain_grad()
         return loss
 
@@ -67,9 +85,11 @@ def weights_init(m):
 
 
 
-model = CARNet()
+# model = CARNet()
 model = CARNet().to(device)
-model = model.apply(weights_init)
+# model = model.apply(weights_init)
+# Load the model
+model.load_state_dict(torch.load(".\\CTA data\\models\\CAR-Net-256-20.pth"))
 criterion = mPD_loss_2()
 optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-4)  # Adjust hyperparameters according to paper
 
@@ -79,7 +99,10 @@ print(f"Number of parameters: {total_params}")
 init_weigts = list(model.parameters())[-1].clone().detach()
 print("Initial weights:", init_weigts)
 
+
+
 def train_model(model, criterion, optimizer, train_loader, num_epochs=186):
+
     for epoch in range(num_epochs):
         running_loss = 0.0
 
@@ -119,12 +142,12 @@ def train_model(model, criterion, optimizer, train_loader, num_epochs=186):
     return model
 
 # Load the data:
-train_dataset = CenterlineDatasetSpherical(base_dir="D:\\CTA data\\")
+train_dataset = CenterlineDatasetSpherical(base_dir=".\\CTA data\\")
 train_loader = DataLoader(train_dataset, batch_size=256, shuffle=True)
 
 # Train the model
-trained_model = train_model(model, criterion, optimizer, train_loader, num_epochs=20)
+trained_model = train_model(model, criterion, optimizer, train_loader, num_epochs=100)
 
 # Save the weights
-torch.save(trained_model.state_dict(), "D:\\CTA data\\models\\CAR-Net-256-20.pth")
+torch.save(trained_model.state_dict(), ".\\CTA data\\models\\CAR-Net-256-20.pth")
 

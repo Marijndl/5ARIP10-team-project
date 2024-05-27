@@ -3,7 +3,7 @@ from torch.utils.data import DataLoader, Dataset
 from spherical_coordinates import *
 import torch
 
-offset_list = np.genfromtxt("D:\\CTA data\\Offset_deformations.txt", delimiter=",")
+offset_list = np.genfromtxt(".\\CTA data\\Offset_deformations.txt", delimiter=",")
 
 class CenterlineDataset(Dataset):
     def __init__(self, data_dir_2D, data_dir_3D, transform=None):
@@ -80,7 +80,7 @@ class CenterlineDatasetSpherical(Dataset):
         return sample
 
 if __name__ == '__main__':
-    train_dataset = CenterlineDatasetSpherical(base_dir="D:\\CTA data\\")
+    train_dataset = CenterlineDatasetSpherical(base_dir=".\\CTA data\\")
     train_loader = DataLoader(train_dataset, batch_size=512, shuffle=True)
 
     data_iter = iter(train_loader)

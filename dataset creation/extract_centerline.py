@@ -78,7 +78,7 @@ def save_centerlines_to_file(label_id):
     resampledCurve = resample_segment(segment, label_id)
 
     # Save new curve to a file.
-    slicer.modules.markups.logic().ExportControlPointsToCSV(resampledCurve, f"D:\\CTA data\\Segments\\SegmentPoints_{label_id}_{i}.csv")
+    slicer.modules.markups.logic().ExportControlPointsToCSV(resampledCurve, f".\\CTA data\\Segments\\SegmentPoints_{label_id}_{i}.csv")
 
 def extract_centerlines_slicer(label_id: int):
   # Clear up the scene

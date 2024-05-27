@@ -28,10 +28,10 @@ def convert_to_projection(origin_3D, spherical_3D, origin_2D, spherical_2D, defo
 
 # Load the model
 model = CARNet()
-model.load_state_dict(torch.load("D:\\CTA data\\models\\CAR-Net-256-defor.pth"))
+model.load_state_dict(torch.load(".\\CTA data\\models\\CAR-Net-256-20.pth"))
 
 # Load dataset
-train_dataset = CenterlineDatasetSpherical(base_dir="D:\\CTA data\\")
+train_dataset = CenterlineDatasetSpherical(base_dir=".\\CTA data\\")
 train_loader = DataLoader(train_dataset, batch_size=256, shuffle=True)
 
 # Run model

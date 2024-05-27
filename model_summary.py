@@ -15,7 +15,7 @@ from torchsummary import summary
 
 model = CARNet()
 
-data_3D = torch.load('D:\\CTA data\\shape_3D.pt')
+data_3D = torch.load('.\\CTA data\\shape_3D.pt')
 
 # print(torch.sum(torch.isnan(data_3D)))
 print(summary(model, input_size=[(3,1), (3,349), (3,1), (3,349)], batch_size=512))

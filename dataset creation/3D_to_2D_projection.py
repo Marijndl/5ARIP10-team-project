@@ -54,7 +54,7 @@ def projection_to_2D(input_tensor: np.array, alpha: float, beta: float, dxc: flo
     return coordinates
 
 if __name__ == "__main__":
-    cta_vessels = nib.load('D:\\CTA data\\1-1000\\1.label.nii.gz').get_fdata()
+    cta_vessels = nib.load('.\\CTA data\\1-1000\\1.label.nii.gz').get_fdata()
     coords = projection_to_2D(cta_vessels, -30, 25, 38, 56)
 
     fig, ax = plt.subplots(figsize=(10,10))

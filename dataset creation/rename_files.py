@@ -2,7 +2,7 @@ import os
 import re
 
 # Directory containing the CSV files
-directory = f'D:\\CTA data\\Segments renamed\\'
+directory = f'.\\CTA data\\Segments renamed\\'
 
 # Regular expression pattern to match filenames like "SegmentPoints_1_0.csv"
 pattern = r'SegmentPoints_(\d+)_(\d+)\.csv'

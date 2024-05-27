@@ -17,9 +17,9 @@ loss = nn.MSELoss()  # put loss function we have here
 optimizer = optim.Adam(model.parameters(), lr=0.1)  # Adjust hyperparameters according to paper
 
 #Load data
-directory_2D = "D:\\CTA data\\Segments_deformed_2\\"
+directory_2D = ".\\CTA data\\Segments_deformed_2\\"
 file_names_2D = os.listdir(directory_2D)
-directory_3D = "D:\\CTA data\\Segments renamed\\"
+directory_3D = ".\\CTA data\\Segments renamed\\"
 file_names_3D = os.listdir(directory_3D)
 
 data_2d = np.genfromtxt(os.path.join(directory_2D, file_names_2D[0]), delimiter=",")

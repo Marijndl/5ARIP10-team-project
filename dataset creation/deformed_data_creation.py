@@ -8,7 +8,7 @@ import random
 
 if __name__ == "__main__":
     # Define the directory where your files are located
-    directory = "D:\\CTA data\\Segments renamed\\"
+    directory = ".\\CTA data\\Segments renamed\\"
 
     file_names = os.listdir(directory)
 
@@ -43,10 +43,10 @@ if __name__ == "__main__":
 
         # Save to CSV with header
         header = "X, Y"
-        np.savetxt(f"D:\\CTA data\\Segments_deformed_3\\{file[:-4]}_def2D.csv", reconstructed_coordinates[:,:2], delimiter=",", header=header)
+        np.savetxt(f".\\CTA data\\Segments_deformed_3\\{file[:-4]}_def2D.csv", reconstructed_coordinates[:,:2], delimiter=",", header=header)
 
     # Save the offsets to a .txt file:
-    with open(f"D:\\CTA data\\Offset_deformations.txt", 'w') as file:
+    with open(f".\\CTA data\\Offset_deformations.txt", 'w') as file:
         for item in offset_list:
             file.write(str(item) + '\n')
 

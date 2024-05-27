@@ -107,13 +107,13 @@ def convert_to_projection_old(origin_3D, spherical_3D, origin_2D, spherical_2D, 
 if __name__ == "__main__":
     ## Testing and validation plotting:
 
-    data = np.genfromtxt(f"D:\\CTA data\\Segments\\SegmentPoints_55_4.csv", delimiter=",")
+    data = np.genfromtxt(f".\\CTA data\\Segments\\SegmentPoints_55_4.csv", delimiter=",")
     coordinates = data[1:,1:4]
     coordinates[:,0] -= np.min(coordinates[:,0])
     coordinates[:,1] -= np.min(coordinates[:,1])
     coordinates[:,2] -= np.min(coordinates[:,2])
 
-    data_2D = np.genfromtxt(f"D:\\CTA data\\Segments_deformed\\SegmentPoints_55_4_def2D.csv", delimiter=",")
+    data_2D = np.genfromtxt(f".\\CTA data\\Segments_deformed\\SegmentPoints_55_4_def2D.csv", delimiter=",")
     coordinates_2D = data_2D
     # f = interp1d(coordinates_2D[:,0], coordinates_2D[:,1])
 
