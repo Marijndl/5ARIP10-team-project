@@ -3,7 +3,7 @@ from torch.utils.data import DataLoader, Dataset
 from spherical_coordinates import *
 import torch
 
-offset_list = np.genfromtxt("D:\\CTA data\\Offset_deformations.txt", delimiter=",")
+offset_list = np.genfromtxt("D:\\CTA data\\pt files\\Offset_deformations_interp_353_10.txt", delimiter=",")
 
 class CenterlineDataset(Dataset):
     def __init__(self, data_dir_2D, data_dir_3D, transform=None):
@@ -53,13 +53,15 @@ class CenterlineDataset(Dataset):
 
 class CenterlineDatasetSpherical(Dataset):
     def __init__(self, base_dir, transform=None):
-        self.origin_2D = torch.load(os.path.join(base_dir, "origin_2D_interp_353.pt"))
-        self.origin_3D = torch.load(os.path.join(base_dir, "origin_3D_interp_353.pt"))
-        self.shape_2D = torch.load(os.path.join(base_dir, "shape_2D_interp_353.pt"))
-        self.shape_3D = torch.load(os.path.join(base_dir, "shape_3D_interp_353.pt"))
-        self.offset_list = np.genfromtxt(os.path.join(base_dir, "Offset_deformations.txt"), delimiter=",")
+        self.offset_list = np.genfromtxt(os.path.join(base_dir, "Offset_deformations_interp_353_10.txt"), delimiter=",")
         self.transform = transform
+        self.base_dir = base_dir
 
+        self.origin_2D = self.load_tensors("origin_2D_interp_353_part")
+        self.origin_3D = self.load_tensors("origin_3D_interp_353_part")
+        self.shape_2D = self.load_tensors("shape_2D_interp_353_part")
+        self.shape_3D = self.load_tensors("shape_3D_interp_353_part")
+        pass
     def __len__(self):
         return self.shape_2D.shape[0]
 
@@ -79,8 +81,19 @@ class CenterlineDatasetSpherical(Dataset):
 
         return sample
 
+    def load_tensors(self, name):
+
+        tensors = []
+        for partition in range(5):
+            file_path = os.path.join(self.base_dir, name +  str(partition) + ".pt")
+            tensor = torch.load(file_path)
+            tensors.append(tensor)
+
+        combined_tensor = torch.cat(tensors, dim=0)  # Adjust dim as needed
+        return combined_tensor
+
 if __name__ == '__main__':
-    train_dataset = CenterlineDatasetSpherical(base_dir="D:\\CTA data\\")
+    train_dataset = CenterlineDatasetSpherical(base_dir="D:\\CTA data\\pt files\\")
     train_loader = DataLoader(train_dataset, batch_size=512, shuffle=True)
 
     data_iter = iter(train_loader)

@@ -119,7 +119,7 @@ def train_model(model, criterion, optimizer, train_loader, num_epochs=186):
 if __name__ == "__main__":
 
     # Load the data:
-    train_dataset = CenterlineDatasetSpherical(base_dir="D:\\CTA data\\")
+    train_dataset = CenterlineDatasetSpherical(base_dir="D:\\CTA data\\pt files\\")
     train_loader = DataLoader(train_dataset, batch_size=256, shuffle=True)
 
     # Train the model
