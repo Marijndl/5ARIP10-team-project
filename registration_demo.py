@@ -7,7 +7,7 @@ mpl.use('Qt5Agg')
 
 # Load the model
 model = CARNet().to('cuda')
-model.load_state_dict(torch.load("D:\\CTA data\\models\\CAR-Net-256-20.pth"))
+model.load_state_dict(torch.load("D:\\CTA data\\models\\CAR-Net-256-24.pth"))
 loss = mPD_loss_2()
 
 # Load dataset
@@ -43,6 +43,16 @@ original_cart_2D = loss.cartesian_tensor(sample['origin_2D'].to('cuda'), sample[
 deformed_3D = deformed_cart_3D.clone().detach().cpu().numpy()
 original_3D = original_cart_3D.clone().detach().cpu().numpy()
 original_2D = original_cart_2D.clone().detach().cpu().numpy()
+# Remove z component
+deformed_3D = deformed_3D[:, :2, :]
+original_2D = original_2D[:, :2, :]
+difference = abs(deformed_3D - original_2D)
+print(difference.shape)
+# pythagorean theorem
+distance = np.sqrt(np.sum(difference ** 2, axis=1))
+mPD = np.mean(distance)
+print(f"Mean Projection Distance: {mPD}")
+
 
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
@@ -53,12 +63,12 @@ idx = 0
 org_x = original_2D[idx, 0, :]
 org_y = original_2D[idx, 1, :]
 # org_z = original_2D[idx, 2, :]
-org_z = np.zeros(original_2D[idx, 2, :].shape) # To prevent the small non-zero values to influence the plot
+#org_z = np.zeros(original_2D[idx, 2, :].shape) # To prevent the small non-zero values to influence the plot
 
 def_x = deformed_3D[idx, 0, :]
 def_y = deformed_3D[idx, 1, :]
 # def_z = deformed_3D[idx, 2, :]
-def_z = np.zeros(original_2D[idx, 2, :].shape)
+#def_z = np.zeros(original_2D[idx, 2, :].shape)
 
 org_x_3 = original_3D[idx, 0, :]
 org_y_3 = original_3D[idx, 1, :]
@@ -66,12 +76,15 @@ org_z_3 = original_3D[idx, 2, :]
 
 
 # Plot the lines connecting the points
-ax.plot(org_x, org_y, org_z)
-ax.plot(def_x, def_y, def_z)
+ax.plot(org_x, org_y)
+ax.plot(def_x, def_y)
 ax.plot(org_x_3, org_y_3, org_z_3)
 
 ax.set_xlabel('X')
 ax.set_ylabel('Y')
 ax.set_zlabel('Z')
+# set the aspect ratio of the plot to be equal
+ax.set_aspect('equal', 'box')
+
 ax.legend(['Original 2D centerline segment', 'Deformed 3D centerline segment', 'Original 3D centerline segment'])
 plt.show()
