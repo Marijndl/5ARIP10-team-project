@@ -7,7 +7,7 @@ mpl.use('Qt5Agg')
 
 # Load the model
 model = CARNet().to('cuda')
-model.load_state_dict(torch.load("D:\\CTA data\\models\\CAR-Net-256-24.pth"))
+model.load_state_dict(torch.load("D:\\CTA data\\models\\CAR-Net-256-25.pth"))
 loss = mPD_loss_2()
 
 # Load dataset
