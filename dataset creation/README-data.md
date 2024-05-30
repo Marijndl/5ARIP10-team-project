@@ -1,4 +1,6 @@
 # 5ARIP10-team-project
+<img src="../logo_transparent.png" alt="Logo" height="75"/>
+
 #### How to generate the dataset
 
 The origin dataset is [ImageCAS](https://github.com/XiaoweiXu/ImageCAS-A-Large-Scale-Dataset-and-Benchmark-for-Coronary-Artery-Segmentation-based-on-CT), A-Large-Scale-Dataset-and-Benchmark-for-Coronary-Artery-Segmentation-based-on-Computed-Tomo. This dataset contains about 1000 3D CTA images.
