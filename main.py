@@ -1,4 +1,5 @@
 import keyboard
+import optuna
 import torch
 from torch import nn, optim
 from model import CARNet
@@ -69,7 +70,7 @@ model = CARNet().to(device)
 model.apply(weights_init)
 criterion = mPD_loss_2()
 optimizer = optim.Adam(model.parameters(), lr=0.1, weight_decay=1e-4)
-gradual = optim.lr_scheduler.StepLR(optimizer, step_size=15, gamma=0.5)
+gradual = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.1)
 
 total_params = sum(p.numel() for p in model.parameters())
 print(f"Number of parameters: {total_params}")
@@ -178,16 +179,18 @@ def on_key_press(event):
         print("Key press detected, stopping training at the end of the epoch")
         stop_training = True
 
-# Register the key press eventq
+# Register the key press event
 keyboard.on_press(on_key_press)
 
 
 if __name__ == "__main__":
     dataset = CenterlineDatasetSpherical(base_dir="D:\\CTA data\\")
+
     train_loader, val_loader, test_loader = create_datasets(dataset, train_ratio=0.7, val_ratio=0.15, test_ratio=0.15, batch_size=512, shuffle_train=True)
     trained_model, train_losses, val_losses = train_model(model, criterion, optimizer, train_loader, val_loader, num_epochs=100)
 
-    torch.save(trained_model.state_dict(), "D:\\CTA data\\models\\CAR-Net-256-24.pth")
+
+    torch.save(trained_model.state_dict(), "D:\\CTA data\\models\\CAR-Net-256-26.pth")
     print("Model saved")
     plt.figure(figsize=(10, 5))
     plt.plot(train_losses, label='Train Loss')
