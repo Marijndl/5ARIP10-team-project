@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 import pyvista as pv
 from scipy.ndimage import binary_erosion
 
-cta_volume = nib.load('C:\\Users\\20203226\\Documents\\CTA data\\1-200\\1.img.nii.gz').get_fdata()
-cta_vessels = nib.load('C:\\Users\\20203226\\Documents\\CTA data\\1-200\\1.label.nii.gz').get_fdata()
+cta_volume = nib.load('C:\\Users\\20203226\\Documents\\CTA data\\1-1000\\1.img.nii.gz').get_fdata()
+cta_vessels = nib.load('C:\\Users\\20203226\\Documents\\CTA data\\1-1000\\1.label.nii.gz').get_fdata()
 cta_vessels = np.clip(cta_vessels, 0, 1)
 
 center_line = binary_erosion(cta_vessels, iterations=3).astype(cta_vessels.dtype)
