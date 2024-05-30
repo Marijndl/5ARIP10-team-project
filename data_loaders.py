@@ -1,5 +1,5 @@
 import os
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, Subset
 from spherical_coordinates import *
 import torch
 
@@ -78,6 +78,51 @@ class CenterlineDatasetSpherical(Dataset):
             sample = self.transform(sample)
 
         return sample
+
+
+def create_datasets(dataset, train_ratio=0.7, val_ratio=0.15, test_ratio=0.15, batch_size=512, shuffle_train=True):
+    """
+    Splits the dataset into training, validation, and test sets based on the  indices, returns a data loader
+
+    Parameters:
+    - dataset: the dataset to split.
+    - train_ratio: the proportion of data to use for training.
+    - val_ratio: the proportion of data to use for validation.
+    - test_ratio: the proportion of data to use for testing.
+    - batch_size: the batch size for the DataLoaders.
+    - shuffle_train: wether to shuffle the training data
+
+    Returns:
+    - train_loader: DataLoader for the training set.
+    - val_loader: DataLoader for the validation set.
+    - test_loader: DataLoader for the test set.
+    """
+    assert train_ratio + val_ratio + test_ratio == 1, "The sum of train_ratio, val_ratio, and test_ratio must be 1."
+
+    dataset_size = len(dataset)
+    indices = list(range(dataset_size))
+
+    train_size = int(train_ratio * dataset_size)
+    val_size = int(val_ratio * dataset_size)
+    test_size = dataset_size - train_size - val_size
+
+    # Define the fixed indices for each split
+    train_indices = indices[:train_size]
+    val_indices = indices[train_size:train_size + val_size]
+    test_indices = indices[train_size + val_size:]
+
+    # Create subsets using the defined indices
+    train_dataset = Subset(dataset, train_indices)
+    val_dataset = Subset(dataset, val_indices)
+    test_dataset = Subset(dataset, test_indices)
+
+    # Create DataLoaders for each subset
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle_train)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+
+    return train_loader, val_loader, test_loader
+
 
 if __name__ == '__main__':
     train_dataset = CenterlineDatasetSpherical(base_dir="D:\\CTA data\\")

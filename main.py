@@ -1,3 +1,4 @@
+import keyboard
 import torch
 from torch import nn, optim
 from model import CARNet
@@ -31,9 +32,9 @@ class mPD_loss_2(nn.Module):
             grad_y = tensor[:, :, 1:] - tensor[:, :, :-1]
             grad_x = tensor[:, 1:, :] - tensor[:, :-1, :]
             return grad_y, grad_x
-        
+
         grad_y, grad_x = gradient(deformation_field)
-        
+
         smooth_loss = torch.sum(grad_y**2) + torch.sum(grad_x**2)
         return smooth_loss
 
@@ -44,10 +45,13 @@ class mPD_loss_2(nn.Module):
         deformed_cart = self.cartesian_tensor(origin_3D, spherical_3D_deformed)
         original_cart = self.cartesian_tensor(origin_2D, spherical_2D)
 
-        loss = torch.sum(torch.mean(torch.sum(torch.abs(deformed_cart - original_cart), dim=1), dim=1))
+        diff = deformed_cart - original_cart
+        diff_xy = diff[:, :2, :].clone().requires_grad_(True)
+
+        loss = torch.sum(torch.mean(torch.sum(torch.abs(diff_xy), dim=1), dim=1))
         smooth_loss = self.smoothness_loss(deformation_field)
-        
-        total_loss = loss + smooth_loss
+
+        total_loss = loss
         return total_loss
 
 torch.autograd.set_detect_anomaly(True)
@@ -65,6 +69,7 @@ model = CARNet().to(device)
 model.apply(weights_init)
 criterion = mPD_loss_2()
 optimizer = optim.Adam(model.parameters(), lr=0.1, weight_decay=1e-4)
+gradual = optim.lr_scheduler.StepLR(optimizer, step_size=15, gamma=0.5)
 
 total_params = sum(p.numel() for p in model.parameters())
 print(f"Number of parameters: {total_params}")
@@ -72,35 +77,67 @@ print(f"Number of parameters: {total_params}")
 def train_model(model, criterion, optimizer, train_loader, val_loader, num_epochs=186):
     train_losses = []
     val_losses = []
-
+    global stop_training
     for epoch in range(num_epochs):
-        model.train()
-        running_loss = 0.0
-
+        epoch_loss = 0.0
+        total_samples = 1
+        batch_losses = []
         loop = tqdm(enumerate(train_loader), total=len(train_loader), leave=True)
+        model.train()
+        if stop_training:
+            tqdm.write(f"Stopped training at epoch {epoch + 1}")
+            break
+
         for batch_idx, input in loop:
+            # Set gradient to zero
             optimizer.zero_grad()
 
-            input['origin_3D'] = input['origin_3D'].to(device).requires_grad_(True)
-            input['shape_3D'] = input['shape_3D'].to(device).requires_grad_(True)
-            input['origin_2D'] = input['origin_2D'].to(device).requires_grad_(True)
-            input['shape_2D'] = input['shape_2D'].to(device).requires_grad_(True)
+            # Forward pass
+            input['origin_3D'].requires_grad_(True)
+            input['shape_3D'].requires_grad_(True)
+            input['origin_2D'].requires_grad_(True)
+            input['shape_2D'].requires_grad_(True)
+            batch_size = input['origin_3D'].size(0)  # Assuming batch size is the same across all inputs
 
-            outputs = model(input['origin_3D'], input['shape_3D'], input['origin_2D'], input['shape_2D'])
+            outputs = model(input['origin_3D'].to(device),
+                            input['shape_3D'].to(device),
+                            input['origin_2D'].to(device),
+                            input['shape_2D'].to(device))
+            outputs.requires_grad_(True)
 
-            loss = criterion(input['origin_3D'], input['shape_3D'], input['origin_2D'], input['shape_2D'], outputs)
+            # Calculate loss
+            loss = criterion(input['origin_3D'].to(device),
+                             input['shape_3D'].to(device),
+                             input['origin_2D'].to(device),
+                             input['shape_2D'].to(device),
+                             outputs)
+
+            # Backward pass
             loss.backward()
+
+            # Optimize
             optimizer.step()
 
-            running_loss += loss.item() * input['origin_3D'].shape[0]
-            loop.set_description(f"Epoch [{epoch+1}/{num_epochs}]")
-            loop.set_postfix(loss=loss.item())
+            # Calculate batch loss
+            batch_loss = loss.item()
+            epoch_loss += batch_loss
+            total_samples += batch_size  # Accumulate the number of samples
 
-        epoch_train_loss = running_loss / len(train_loader.dataset)
+            # Update progress bar
+            loop.set_description(f"Epoch [{epoch + 1}/{num_epochs}], LR: {optimizer.param_groups[0]['lr']:.6f}")
+            loop.set_postfix(loss=batch_loss / batch_size)
+            # print(list(model.parameters())[-1].clone().detach())
+
+        # Update learning rate scheduler
+        gradual.step()
+
+        # Calculate average loss per sample
+        epoch_train_loss = epoch_loss / len(train_loader.dataset)
         train_losses.append(epoch_train_loss)
 
+
         model.eval()
-        val_loss = 0.0
+        val_total_loss = 0.0
         with torch.no_grad():
             for input in val_loader:
                 input['origin_3D'] = input['origin_3D'].to(device)
@@ -108,12 +145,12 @@ def train_model(model, criterion, optimizer, train_loader, val_loader, num_epoch
                 input['origin_2D'] = input['origin_2D'].to(device)
                 input['shape_2D'] = input['shape_2D'].to(device)
                 outputs = model(input['origin_3D'], input['shape_3D'], input['origin_2D'], input['shape_2D'])
-                loss = criterion(input['origin_3D'], input['shape_3D'], input['origin_2D'], input['shape_2D'], outputs)
-                val_loss += loss.item() * input['origin_3D'].shape[0]
+                val_loss = criterion(input['origin_3D'], input['shape_3D'], input['origin_2D'], input['shape_2D'], outputs)
+                val_total_loss += val_loss.item()
 
-        epoch_val_loss = val_loss / len(val_loader.dataset)
+        epoch_val_loss = val_total_loss / len(val_loader.dataset)
         val_losses.append(epoch_val_loss)
-        print(f'Epoch {epoch+1}, Train Loss: {epoch_train_loss}, Validation Loss: {epoch_val_loss}')
+        tqdm.write(f'Epoch {epoch+1}, Train Loss: {epoch_train_loss:.4f}, Validation Loss: {epoch_val_loss:.4f}')
 
     return model, train_losses, val_losses
 
@@ -128,27 +165,30 @@ def test_model(model, criterion, test_loader):
             input['shape_2D'] = input['shape_2D'].to(device)
             outputs = model(input['origin_3D'], input['shape_3D'], input['origin_2D'], input['shape_2D'])
             loss = criterion(input['origin_3D'], input['shape_3D'], input['origin_2D'], input['shape_2D'], outputs)
-            test_loss += loss.item() * input['origin_3D'].shape[0]
-    
+            test_loss += loss.item()
+
     test_loss = test_loss / len(test_loader.dataset)
     print(f'Test Loss: {test_loss}')
     return test_loss
 
+stop_training = False
+def on_key_press(event):
+    global stop_training
+    if event.name == 'q':
+        print("Key press detected, stopping training at the end of the epoch")
+        stop_training = True
+
+# Register the key press eventq
+keyboard.on_press(on_key_press)
+
+
 if __name__ == "__main__":
     dataset = CenterlineDatasetSpherical(base_dir="D:\\CTA data\\")
-    train_size = int(0.7 * len(dataset))
-    val_size = int(0.15 * len(dataset))
-    test_size = len(dataset) - train_size - val_size
-    train_dataset, val_dataset, test_dataset = random_split(dataset, [train_size, val_size, test_size])
-
-    train_loader = DataLoader(train_dataset, batch_size=512, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=512, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=512, shuffle=False)
-
+    train_loader, val_loader, test_loader = create_datasets(dataset, train_ratio=0.7, val_ratio=0.15, test_ratio=0.15, batch_size=512, shuffle_train=True)
     trained_model, train_losses, val_losses = train_model(model, criterion, optimizer, train_loader, val_loader, num_epochs=100)
 
-    torch.save(trained_model.state_dict(), "D:\\CTA data\\models\\CAR-Net-256-23.pth")
-
+    torch.save(trained_model.state_dict(), "D:\\CTA data\\models\\CAR-Net-256-24.pth")
+    print("Model saved")
     plt.figure(figsize=(10, 5))
     plt.plot(train_losses, label='Train Loss')
     plt.plot(val_losses, label='Validation Loss')
@@ -159,3 +199,5 @@ if __name__ == "__main__":
     plt.show()
 
     test_loss = test_model(trained_model, criterion, test_loader)
+
+
