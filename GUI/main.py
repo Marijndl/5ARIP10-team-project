@@ -1,15 +1,14 @@
-import vtk
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QHBoxLayout, QSlider, QLabel, \
-    QComboBox
+import numpy as np
+import pandas as pd
+import pyvista as pv
+import vtk
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QIcon
-import pyvista as pv
-import numpy as np
+from PyQt5.QtWidgets import QApplication, QVBoxLayout, QWidget, QPushButton, QHBoxLayout, QSlider, QLabel, \
+    QComboBox
 from pyvistaqt import QtInteractor
-import pandas as pd
 from scipy.spatial.transform import Rotation as R
-
 
 
 class PyVistaWindow(QWidget):
@@ -46,8 +45,6 @@ class PyVistaWindow(QWidget):
         self.rotate_down_button.pressed.connect(self.start_rotating_down)
         self.rotate_down_button.released.connect(self.stop_rotating)
 
-
-
         self.move_up_button = self.create_button('Move Up', None, self.move_up)
         self.move_down_button = self.create_button('Move Down', None, self.move_down)
         self.front_button = self.create_button('Move Front', None, self.move_front)
@@ -64,7 +61,7 @@ class PyVistaWindow(QWidget):
         self.camera_position_dropdown.activated[str].connect(self.set_camera_position)
 
         # Label to display current position
-        #self.position_label = QLabel('Position: (0, 0, 0)')
+        # self.position_label = QLabel('Position: (0, 0, 0)')
 
         self.camera_label = self.create_label('<b>Camera controls</b>', 150, 30)
         self.overlay_label = self.create_label('<b>Overlay controls</b>', 150, 30)
@@ -72,7 +69,6 @@ class PyVistaWindow(QWidget):
                                                                                        self.set_line_opacity)
         self.image_opacity_label, self.image_opacity_slider = self.create_opacity_slider('Image Opacity',
                                                                                          self.set_image_opacity)
-
 
         # Create layout controls
         controls_layout = QVBoxLayout()
@@ -108,7 +104,7 @@ class PyVistaWindow(QWidget):
         self.add_line('summer')
         self.line_colored = False
         # Load an image
-        image_path = "images.jpeg"  # Provide the path to your image
+        image_path = "Assets/images.jpeg"  # Provide the path to your image
         try:
             texture = pv.read_texture(image_path)
         except Exception as e:
@@ -117,13 +113,15 @@ class PyVistaWindow(QWidget):
         # Create a plane mesh and apply the texture
         self.plane = pv.Plane(center=(30, -36, 0), direction=(0, 0, 1), i_size=100, j_size=100, i_resolution=1,
                               j_resolution=1)  # Increase size
-        self.plane_actor = self.plotter.add_mesh(self.plane, texture=texture, ambient=1.0, show_edges=True, color='white', opacity=0.5)
+        self.plane_actor = self.plotter.add_mesh(self.plane, texture=texture, ambient=1.0, show_edges=True,
+                                                 color='white', opacity=0.5)
 
         self.plotter.view_xy()
         self.view = 'front'
         self.rotation_axis = None
         self.set_view('Front')
         self.image_opacity_slider.setValue(50)
+
     def create_button(self, text, icon_path, on_clicked):
         button = QPushButton(text)
         if icon_path:
@@ -156,7 +154,6 @@ class PyVistaWindow(QWidget):
 
         return opacity_label, opacity_slider
 
-
     def create_camera_layout(self):
         camera_layout = QVBoxLayout()
         camera_layout.setSizeConstraint(QVBoxLayout.SetFixedSize)
@@ -169,7 +166,7 @@ class PyVistaWindow(QWidget):
         camera_layout.addLayout(camera_left_right_layout)
         camera_layout.addWidget(self.rotate_down_button)
         camera_layout.addWidget(self.reset_camera_button)
-        #camera_layout.addWidget(self.position_label)
+        # camera_layout.addWidget(self.position_label)
         return camera_layout
 
     def create_overlay_layout(self):
@@ -202,7 +199,8 @@ class PyVistaWindow(QWidget):
             self.line = pv.PolyData(points)
             z_coords = points[:, 2]
             if color != 'red':
-                self.line_actor_color = self.plotter.add_mesh(self.line, scalars=z_coords, cmap=color, show_scalar_bar=False)
+                self.line_actor_color = self.plotter.add_mesh(self.line, scalars=z_coords, cmap=color,
+                                                              show_scalar_bar=False)
                 self.line_actor_color.visibility = False
             else:
                 self.line_actor_red = self.plotter.add_mesh(self.line, color=color)
@@ -337,7 +335,7 @@ class PyVistaWindow(QWidget):
         elif text == "Top":
             view_vector = (0, 1, 0)
             angle = 10  # Rotation angle in degrees
-            view_vector = self.rotate_vector(view_vector, angle, (1, 0 ,0))
+            view_vector = self.rotate_vector(view_vector, angle, (1, 0, 0))
             view_up = (0, 0, -1)
         elif text == "Bottom":
             view_vector = (0, -1, 0)
@@ -394,7 +392,6 @@ class PyVistaWindow(QWidget):
         self.rotation_direction = 'down'
         self.timer.start(10)
 
-
     def start_rotating_acw(self):
         self.rotation_direction = 'acw'
         self.timer.start(10)  # Adjust the interval as needed for smoother rotation
@@ -420,8 +417,6 @@ class PyVistaWindow(QWidget):
         elif self.rotation_direction == 'down':
             self.set_rotation_axis(np.array([1, 0, 0]))
             self.camera_around_axis(0.02)
-
-
 
     def set_line_opacity(self, value):
         opacity = value / 100
