@@ -1,5 +1,5 @@
 # 5ARIP10-team-project
-<img src="Assets/logo_transparent.png" alt="drawing" height="75"/>
+<img src="../logo_transparent.png" alt="Logo" height="75"/>
 
 ### GUI explanation
 
