@@ -60,15 +60,15 @@ def evaluate_model(model, test_loader, loss, plot_outliers=False, std_threshold=
                 if plot_outliers == True:
                     plot_3D_centerline(original_3D, deformed_3D, original_2D, distances, idx)
         #plot random sample
-    plot_3D_centerline(original_3D, deformed_3D, original_2D, distances, random.randint(0, len(distances)-1))
+    #plot_3D_centerline(original_3D, deformed_3D, original_2D, distances, random.randint(0, len(distances)-1))
 
 
-    mPD = np.mean(distances)
-    std_mPD = np.std(distances)
+    mPD = np.mean(all_distances)
+    std_mPD = np.std(all_distances)
     print(f"Mean time per sample: {np.mean(times):.2f}")
     print(f"Mean Projection Distance: {mPD:.2f}")
     print(f"Standard deviation: {std_mPD:.2f}")
-
+    return mPD, std_mPD
 
 def plot_3D_centerline(original_3D, deformed_3D, original_2D, distances, idx=0):
     fig = plt.figure()
@@ -107,4 +107,4 @@ def plot_3D_centerline(original_3D, deformed_3D, original_2D, distances, idx=0):
     ax.legend(['Original 2D centerline segment', 'Deformed 3D centerline segment', 'Original 3D centerline segment'])
     plt.show()
 
-evaluate_model(model, train_loader, loss, plot_outliers=False, std_threshold=8)
+evaluate_model(model, test_loader, loss, plot_outliers=False, std_threshold=8)
