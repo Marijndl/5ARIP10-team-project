@@ -129,7 +129,7 @@ if __name__ == '__main__':
     train_loader = DataLoader(train_dataset, batch_size=512, shuffle=True)
 
     data_iter = iter(train_loader)
-    sample = next(data_iter)
+    batch = next(data_iter)
 
     pass
 
