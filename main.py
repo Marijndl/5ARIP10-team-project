@@ -9,6 +9,8 @@ from data_loaders import *
 from torch.utils.data import DataLoader, random_split
 import matplotlib.pyplot as plt
 
+
+
 class mPD_loss_2(nn.Module):
     def __init__(self):
         super().__init__()
@@ -39,7 +41,7 @@ class mPD_loss_2(nn.Module):
         smooth_loss = torch.sum(grad_y**2) + torch.sum(grad_x**2)
         return smooth_loss
 
-    def forward(self, origin_3D, spherical_3D, origin_2D, spherical_2D, deformation_field):
+    def forward(self, origin_3D, spherical_3D, origin_2D, spherical_2D, deformation_field, alpha=0.02):
         spherical_3D_deformed = spherical_3D.clone()
         spherical_3D_deformed[:, 1:, :] = torch.add(spherical_3D_deformed[:, 1:, :], deformation_field)
 
@@ -52,7 +54,7 @@ class mPD_loss_2(nn.Module):
         loss = torch.sum(torch.mean(torch.sum(torch.abs(diff_xy), dim=1), dim=1))
         smooth_loss = self.smoothness_loss(deformation_field)
 
-        total_loss = loss + 0.02 * smooth_loss
+        total_loss = loss + alpha * smooth_loss
         return total_loss
 
 torch.autograd.set_detect_anomaly(True)
@@ -79,7 +81,7 @@ from tqdm import tqdm
 
 
 def train_model(model, criterion, optimizer, train_loader, val_loader, num_epochs=186,
-                model_save_name="CAR-Net-val.pth", checkpoint_path=None, new_learning_rate_factor=None, scheduler=None):
+                model_save_name="CAR-Net-val.pth", checkpoint_path=None, new_learning_rate_factor=None, scheduler=None, smoothing=0.02, scheduler_type='None'):
     """ Function to train the model, save the best model, and return the training and validation losses. When a
     checkpoint_path is provided the training will resume from the last checkpoint. The model will be saved when the
     training is stopped, and the best model will be saved when the validation loss is lower than the previous best
@@ -107,13 +109,15 @@ def train_model(model, criterion, optimizer, train_loader, val_loader, num_epoch
     train_losses = []
     val_losses = []
     best_val_loss = float('inf')
+    epoch_train_loss = float('inf')
+    epoch_val_loss = float('inf')
 
 
     global stop_training
 
-    if checkpoint_path and os.path.exists(checkpoint_path):
-        model, optimizer, start_epoch, best_val_loss, scheduler = load_model(model, optimizer, checkpoint_path, scheduler)
-        print(f"Checkpoint loaded: resuming from epoch {start_epoch} with best validation loss {best_val_loss}")
+    if checkpoint_path and os.path.exists(checkpoint_path + ".pth"):
+        model, optimizer, start_epoch, train_loss, val_loss, scheduler = load_model(model, optimizer, checkpoint_path, scheduler)
+        print(f"Checkpoint loaded: resuming from epoch {start_epoch} with last train loss:{train_loss}, last val loss: {val_loss}")
     else:
         print("No model checkpoint found, starting training from scratch")
 
@@ -123,13 +127,11 @@ def train_model(model, criterion, optimizer, train_loader, val_loader, num_epoch
             print(f"Learning rate adjusted to {param_group['lr']}")
 
 
-    # Pre-load all training batches to the device
     preloaded_train_batches = []
     for input in train_loader:
         input = {k: v.to(device) for k, v in input.items()}
         preloaded_train_batches.append(input)
 
-    # Pre-load all validation batches to the device
     preloaded_val_batches = []
     for input in val_loader:
         input = {k: v.to(device) for k, v in input.items()}
@@ -143,7 +145,7 @@ def train_model(model, criterion, optimizer, train_loader, val_loader, num_epoch
         if stop_training:
             model_save_name_checkpoint = model_save_name.split(".")[0] + "_checkpoint"
             tqdm.write(f"Stopped training at epoch {epoch + 1}, saving the model as a checkpoint with the name: {model_save_name_checkpoint}")
-            save_model(model, epoch, optimizer, best_val_loss, model_save_name_checkpoint, scheduler=scheduler)
+            save_model(model, epoch, optimizer,epoch_train_loss,  epoch_val_loss, best_val_loss, model_save_name_checkpoint, scheduler=scheduler, scheduler_type=scheduler_type)
             break
 
         loop = tqdm(enumerate(preloaded_train_batches), total=len(preloaded_train_batches), leave=True)
@@ -169,28 +171,21 @@ def train_model(model, criterion, optimizer, train_loader, val_loader, num_epoch
                              input['shape_3D'],
                              input['origin_2D'],
                              input['shape_2D'],
-                             outputs)
+                             outputs, alpha=smoothing)
 
-            # Backward pass
             loss.backward()
 
-            # Optimize
             optimizer.step()
 
-            # Calculate batch loss
             batch_loss = loss.item()
             epoch_loss += batch_loss
             total_samples += batch_size  # Accumulate the number of samples
 
-            # Update progress bar
             loop.set_description(f"Epoch [{epoch + 1}/{num_epochs}], LR: {optimizer.param_groups[0]['lr']:.6f}")
             loop.set_postfix(loss=batch_loss / batch_size)
 
-        # Update learning rate scheduler
-        if scheduler:
-            scheduler.step()
 
-        # Calculate average loss per sample
+
         epoch_train_loss = epoch_loss / total_samples
         train_losses.append(epoch_train_loss)
 
@@ -207,24 +202,60 @@ def train_model(model, criterion, optimizer, train_loader, val_loader, num_epoch
         val_losses.append(epoch_val_loss)
         tqdm.write(f'Epoch {epoch + 1}, Train Loss: {epoch_train_loss:.4f}, Validation Loss: {epoch_val_loss:.4f}')
 
+        if scheduler_type == 'ReduceLROnPlateau':
+            scheduler.step(epoch_val_loss)
+        elif scheduler_type == 'StepLR':
+            scheduler.step()
+
+
         if epoch_val_loss < best_val_loss:
+            print(f"New best validation loss, saving the model as {model_save_name_val}")
             best_val_loss = epoch_val_loss
-            save_model(model, epoch, optimizer, best_val_loss, model_save_name_val, scheduler=scheduler)
-            print("New best validation loss, model saved as {model_save_name_val}")
+            if overwrite_model(model_save_name_val, best_val_loss):
+                save_model(model, epoch+1, optimizer, epoch_train_loss,  epoch_val_loss, best_val_loss, model_save_name_val, scheduler=scheduler, scheduler_type=scheduler_type)
+
 
     if stop_training == False:
         print(f"Training completed, saving the model as {model_save_name}")
-        save_model(model, epoch, optimizer, best_val_loss, model_save_name, scheduler=scheduler)
+        # if the model already exists, read the best_val_loss from the file, if it is lower than the current
+        # best_val_loss, don't overwrite it
+        if overwrite_model(model_save_name, best_val_loss):
+            save_model(model, epoch, optimizer, epoch_train_loss,  epoch_val_loss, best_val_loss, model_save_name, scheduler=scheduler, scheduler_type=scheduler_type)
 
-    return model, train_losses, val_losses
+    best_model = load_model(model, optimizer, f"D:\\CTA data\\models\\{model_save_name_val}", scheduler)[0]
+    return best_model, train_losses, val_losses
 
-def save_model(model, epoch, optimizer, loss, model_save_name, scheduler=None):
+def overwrite_model(model_save_name, best_val_loss):
+    overwrite = True
+    if os.path.exists(f"D:\\CTA data\\models\\{model_save_name}.pth"):
+        print(f"Model with the name {model_save_name} already exists, checking if the best validation loss is lower "
+              f"than the new best validation loss")
+        with open(f"D:\\CTA data\\models\\{model_save_name}_params.txt", "r") as f:
+            lines = f.readlines()
+            for line in lines:
+                if "Best validation loss" in line:
+                    old_best_val_loss = float(line.split(": ")[1])
+                    if old_best_val_loss < best_val_loss:
+                        overwrite = False
+                        print(f"Not overwriting the model, old best validation loss is lower: {old_best_val_loss}, "
+                              f"current is: {best_val_loss}")
+                    else:
+                        overwrite = True
+                        print(f"Overwriting the model, old best validation loss is higher: {old_best_val_loss}, current "
+                              f"is: {best_val_loss}")
+    else:
+        overwrite = True
+    return overwrite
+
+
+def save_model(model, epoch, optimizer, train_loss, val_loss, best_val_loss, model_save_name, scheduler=None, scheduler_type='None'):
     if scheduler:
         torch.save({
             'epoch': epoch,
             'model_state_dict': model.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
-            'loss': loss,
+            'train_loss': train_loss,
+            'val_loss': val_loss,
             'scheduler_state_dict': scheduler.state_dict(),
         }, f"D:\\CTA data\\models\\{model_save_name}.pth")
     else:
@@ -232,28 +263,41 @@ def save_model(model, epoch, optimizer, loss, model_save_name, scheduler=None):
             'epoch': epoch,
             'model_state_dict': model.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
-            'loss': loss,
+            'train_loss': train_loss,
+            'val_loss': val_loss,
         }, f"D:\\CTA data\\models\\{model_save_name}.pth")
     # create file with parameters and statistics
     with open(f"D:\\CTA data\\models\\{model_save_name}_params.txt", "w") as f:
         f.write(f"Epoch: {epoch}\n")
-        f.write(f"Loss: {loss}\n")
+        f.write(f"Train Loss: {train_loss}\n")
+        f.write(f"Validation Loss: {val_loss}\n")
         f.write(f"Model: {model}\n")
         f.write(f"Optimizer: {optimizer}\n")
-        f.write(f"Scheduler: step size: {scheduler.step_size}, gamma: {scheduler.gamma}\n")
+        if scheduler_type == 'ReduceLROnPlateau':
+            f.write(f"Scheduler {scheduler_type}: mode: {scheduler.mode}, factor: {scheduler.factor}, patience: {scheduler.patience}\n, threshold: {scheduler.threshold}\n")
+        elif scheduler_type == 'StepLR':
+            f.write(f"Scheduler {scheduler_type}: step size: {scheduler.step_size}, gamma: {scheduler.gamma}\n")
+        else:
+            f.write("No scheduler used\n")
         f.write(f"Batch size: {batch_size}\n")
         f.write(f"Initial learning rate: {learning_rate}\n")
+        f.write(f"Smoothing: {smoothing}\n")
+        f.write(f"Best validation loss: {best_val_loss}\n")
 
 
-def load_model(model, optimizer, model_save_name, scheduler=None):
-    checkpoint = torch.load(f"D:\\CTA data\\models\\{model_save_name}.pth")
+def load_model(model, optimizer, path_checkpoint, scheduler):
+    checkpoint = torch.load(f"{path_checkpoint}.pth")
     model.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     epoch = checkpoint['epoch']
-    loss = checkpoint['loss']
+    train_loss = checkpoint['train_loss']
+    val_loss = checkpoint['val_loss']
     if scheduler:
-        scheduler = scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
-    return model, optimizer, epoch, loss, scheduler
+        scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+    else:
+        scheduler = None
+
+    return model, optimizer, epoch, train_loss, val_loss, scheduler
 
 
 def test_model(model, criterion, test_loader):
@@ -283,34 +327,89 @@ def on_key_press(event):
 # Register the key press event
 keyboard.on_press(on_key_press)
 
+def evaluate_model(model, test_loader, loss):
+    all_distances = []
+    times = []
+    for batch in test_loader:
+        batch['origin_3D'] = batch['origin_3D'].to(device)
+        batch['shape_3D'] = batch['shape_3D'].to(device)
+        batch['origin_2D'] = batch['origin_2D'].to(device)
+        batch['shape_2D'] = batch['shape_2D'].to(device)
+
+
+        deformation_field = model(batch['origin_3D'], batch['shape_3D'], batch['origin_2D'], batch['shape_2D'])
+
+
+        spherical_3D_deformed = batch['shape_3D'].clone()
+        spherical_3D_deformed[:, 1:, :] = torch.add(spherical_3D_deformed[:, 1:, :], deformation_field)
+
+        # Convert back to cartesian domain
+        deformed_cart_3D = loss.cartesian_tensor(batch['origin_3D'], spherical_3D_deformed)
+        original_cart_3D = loss.cartesian_tensor(batch['origin_3D'], batch['shape_3D'])
+        original_cart_2D = loss.cartesian_tensor(batch['origin_2D'], batch['shape_2D'])
+
+        deformed_3D = deformed_cart_3D.clone().detach().cpu().numpy()
+        original_3D = original_cart_3D.clone().detach().cpu().numpy()
+        original_2D = original_cart_2D.clone().detach().cpu().numpy()
+        # Remove z component
+        difference = abs(deformed_3D - original_2D)
+        difference = difference[:, :2, :]
+
+        # pythagorean theorem
+        distances = np.mean(np.sqrt(np.sum(difference ** 2, axis=1)), axis=1)
+        all_distances.extend(distances)
+
+
+    mPD = np.mean(all_distances)
+    std_mPD = np.std(all_distances)
+    # print(f"Mean time per sample: {np.mean(times):.2f}")
+    print(f"Mean Projection Distance: {mPD:.2f}")
+    print(f"Standard deviation: {std_mPD:.2f}")
+    return mPD, std_mPD
 
 def objective(trial):
     # Suggest hyperparameters
-    learning_rate = trial.suggest_float('learning_rate', 1e-5, 1e-1, log=True)
-    optimizer_name = trial.suggest_categorical('optimizer', ['Adam', 'RMSprop', 'SGD'])
+    global batch_size, learning_rate, optimizer_name, optimization_epochs, smoothing, schedule_type, stop_training
+    learning_rate = trial.suggest_float('learning_rate', 1e-2, 1e-1, log=True)
+    optimizer_name = trial.suggest_categorical('optimizer', ['Adam'])
     batch_size = trial.suggest_categorical('batch_size', [64, 128, 256, 512])
+    smoothing = trial.suggest_float('smoothing', 0.001, 0.1, log=True)
+    schedule_type = trial.suggest_categorical('schedule_type', ['ReduceLROnPlateau', 'StepLR', 'None'])
+
 
     # Create model, criterion, and optimizer
     model = CARNet().to(device)
     model.apply(weights_init)
     criterion = mPD_loss_2()
     optimizer = getattr(optim, optimizer_name)(model.parameters(), lr=learning_rate)
+    if schedule_type == 'ReduceLROnPlateau':
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=optimization_factor, patience=optimization_patience, verbose=True)
+    elif schedule_type == 'StepLR':
+        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=optimization_step_size, gamma=optimization_gamma)
+    else:
+        scheduler = None
+    name = f"CAR-Net-Optimizer_trial{trial.number}"
 
     dataset = CenterlineDatasetSpherical(base_dir="D:\\CTA data\\")
     train_loader, val_loader, test_loader = create_datasets(dataset, train_ratio=0.7, val_ratio=0.15, test_ratio=0.15,
                                                             batch_size=batch_size, shuffle_train=True)
-
+    print(f"Training with learning rate: {learning_rate}, optimizer: {optimizer_name}, batch size: {batch_size}, smoothing: {smoothing}, scheduler: {schedule_type}")
     trained_model, train_losses, val_losses = train_model(model, criterion, optimizer, train_loader, val_loader,
-                                                          num_epochs=30)
+                                                          num_epochs=optimization_epochs,
+                                                          smoothing=smoothing,
+                                                          scheduler=scheduler,
+                                                          scheduler_type=schedule_type,
+                                                          model_save_name=name,)
 
-    # Return the last validation loss as the objective to minimize
-    return min(val_losses)
+    mPd, std_mPd = evaluate_model(trained_model, val_loader, criterion)
+    stop_training = False
+    return mPd
 
 
 
-def optimization():
+def optimization(trails=30):
     study = optuna.create_study(direction='minimize')
-    study.optimize(objective, n_trials=30)
+    study.optimize(objective, n_trials=trails)
 
     print("Number of finished trials: ", len(study.trials))
     print("Best trial:")
@@ -325,56 +424,92 @@ def optimization():
     best_learning_rate = trial.params['learning_rate']
     best_optimizer_name = trial.params['optimizer']
     best_batch_size = trial.params['batch_size']
+    best_smoothing = trial.params['smoothing']
+    best_scheduler = trial.params['schedule_type']
     # save best parameters
     with open("D:\\CTA data\\models\\best_params.txt", "w") as f:
         f.write(f"Best learning rate: {best_learning_rate}\n")
         f.write(f"Best optimizer: {best_optimizer_name}\n")
         f.write(f"Best batch size: {best_batch_size}\n")
-
+        f.write(f"Best smoothing: {best_smoothing}\n")
+        f.write(f"Best scheduler: {trial.params['schedule_type']}\n")
+    return best_learning_rate, best_optimizer_name, best_batch_size, best_smoothing, best_scheduler
 
 # Hyperparameters
-batch_size = 512
-learning_rate = 0.001
+batch_size = 256
+learning_rate = 0.02
 optimizer_name = 'Adam'
-number_of_epochs = 1
+number_of_epochs = 150
+smoothing = 0.02
+use_scheduler = True
+schedule_type = 'StepLR' # Use 'ReduceLROnPlateau' or 'StepLR'
+
 
 # Learning rate scheduler
-scheduler = True
+
 scheduler_step_size = 10
 scheduler_gamma = 0.1
 
-BayesianOptimization = False
-load_best_params = True
-model_save_name = "CAR-Net-optimized_large_dataset"
+BayesianOptimization = True  # Set to True to perform Bayesian optimization
+number_of_trials = 30
+optimization_epochs = 15
+optimization_step_size = 6
+optimization_gamma = 0.1
+optimization_patience = 3
+optimization_factor = 0.1
+
+load_best_params = True    # Load the best parameters found by the Bayesian optimization from the best_params.txt file
+model_save_name = "CAR-Net-Optimizer_large_dataset"     # Name of the model to save
 checkpoint_path = f"D:\\CTA data\\models\\{model_save_name}_checkpoint"
 
 if __name__ == "__main__":
     if BayesianOptimization:
-        optimization()
+        learning_rate, optimizer_name, batch_size, smoothing, schedule_type = optimization(number_of_trials)
     elif load_best_params:
         with open("D:\\CTA data\\models\\best_params.txt", "r") as f:
             best_learning_rate = float(f.readline().split(": ")[1])
             best_optimizer_name = f.readline().split(": ")[1].strip()
             best_batch_size = int(f.readline().split(": ")[1])
+            best_smoothing = float(f.readline().split(": ")[1])
+            best_scheduler = f.readline().split(": ")[1].strip()
             batch_size = best_batch_size
             learning_rate = best_learning_rate
             optimizer_name = best_optimizer_name
+            smoothing = best_smoothing
+            schedule_type = best_scheduler
 
-    print(f"Training with learning rate: {learning_rate}, optimizer: {optimizer_name}, batch size: {batch_size}")
+    print(f"Training with learning rate: {learning_rate}, optimizer: {optimizer_name}, batch size: {batch_size}", f"smoothing: {smoothing}, scheduler: {schedule_type}")
 
     model = CARNet().to(device)
     model.apply(weights_init)
     criterion = mPD_loss_2()
     optimizer = getattr(optim, optimizer_name)(model.parameters(), lr=learning_rate, weight_decay=1e-5)
-    if scheduler:
-        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=scheduler_step_size, gamma=scheduler_gamma)
+    if use_scheduler:
+        if schedule_type == 'ReduceLROnPlateau':
+            scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5, verbose=True)
+        elif schedule_type == 'StepLR':
+            scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.1)
+        elif schedule_type == 'None':
+            scheduler = None
+        else:
+            assert False, "Invalid scheduler type"
+    else:
+        scheduler = None
+        schedule_type = 'None'
+
 
     dataset = CenterlineDatasetSpherical(base_dir="D:\\CTA data\\")
     train_loader, val_loader, test_loader = create_datasets(dataset, train_ratio=0.7, val_ratio=0.15, test_ratio=0.15,
                                                             batch_size=batch_size, shuffle_train=True)
 
     trained_model, train_losses, val_losses = train_model(model, criterion, optimizer, train_loader, val_loader,
-                                                          num_epochs=number_of_epochs, model_save_name=model_save_name, checkpoint_path=checkpoint_path, new_learning_rate_factor=None, scheduler=scheduler)
+                                                          num_epochs=number_of_epochs,
+                                                          model_save_name=model_save_name,
+                                                          checkpoint_path=checkpoint_path,
+                                                          new_learning_rate_factor=None,
+                                                          scheduler=scheduler,
+                                                          smoothing=smoothing,
+                                                          scheduler_type=schedule_type)
 
     plt.figure(figsize=(10, 5))
     plt.plot(train_losses, label='Train Loss')
