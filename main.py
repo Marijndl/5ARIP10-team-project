@@ -52,7 +52,7 @@ class mPD_loss_2(nn.Module):
         loss = torch.sum(torch.mean(torch.sum(torch.abs(diff_xy), dim=1), dim=1))
         smooth_loss = self.smoothness_loss(deformation_field)
 
-        total_loss = loss
+        total_loss = loss + 0.02 * smooth_loss
         return total_loss
 
 torch.autograd.set_detect_anomaly(True)
@@ -69,13 +69,14 @@ def weights_init(m):
 model = CARNet().to(device)
 model.apply(weights_init)
 criterion = mPD_loss_2()
-optimizer = optim.Adam(model.parameters(), lr=0.1, weight_decay=1e-4)
-gradual = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.1)
+
 
 total_params = sum(p.numel() for p in model.parameters())
 print(f"Number of parameters: {total_params}")
 
-def train_model(model, criterion, optimizer, train_loader, val_loader, num_epochs=186):
+def train_model(model, criterion, optimizer, train_loader, val_loader, num_epochs=186, model_save_name="CAR-Net-val.pth"):
+    model_save_name_val = model_save_name.split(".")[0] + "_val"
+    print(f"Saving the best validation model as {model_save_name_val}")
     train_losses = []
     val_losses = []
     global stop_training
@@ -152,6 +153,9 @@ def train_model(model, criterion, optimizer, train_loader, val_loader, num_epoch
         epoch_val_loss = val_total_loss / len(val_loader.dataset)
         val_losses.append(epoch_val_loss)
         tqdm.write(f'Epoch {epoch+1}, Train Loss: {epoch_train_loss:.4f}, Validation Loss: {epoch_val_loss:.4f}')
+        if val_losses[-1] == min(val_losses): # Save the model with the lowest validation loss
+            torch.save(model.state_dict(), f"D:\\CTA data\\models\\{model_save_name_val}.pth")
+            print("Model saved")
 
     return model, train_losses, val_losses
 
@@ -183,14 +187,79 @@ def on_key_press(event):
 keyboard.on_press(on_key_press)
 
 
-if __name__ == "__main__":
+def objective(trial):
+    # Suggest hyperparameters
+    learning_rate = trial.suggest_float('learning_rate', 1e-5, 1e-1, log=True)
+    optimizer_name = trial.suggest_categorical('optimizer', ['Adam', 'RMSprop', 'SGD'])
+    batch_size = trial.suggest_categorical('batch_size', [64, 128, 256, 512])
+
+    # Create model, criterion, and optimizer
+    model = CARNet().to(device)
+    model.apply(weights_init)
+    criterion = mPD_loss_2()
+    optimizer = getattr(optim, optimizer_name)(model.parameters(), lr=learning_rate)
+
+    # Load dataset and create DataLoader
     dataset = CenterlineDatasetSpherical(base_dir="D:\\CTA data\\")
+    train_loader, val_loader, test_loader = create_datasets(dataset, train_ratio=0.7, val_ratio=0.15, test_ratio=0.15,
+                                                            batch_size=batch_size, shuffle_train=True)
 
-    train_loader, val_loader, test_loader = create_datasets(dataset, train_ratio=0.7, val_ratio=0.15, test_ratio=0.15, batch_size=512, shuffle_train=True)
-    trained_model, train_losses, val_losses = train_model(model, criterion, optimizer, train_loader, val_loader, num_epochs=100)
+    # Train model
+    trained_model, train_losses, val_losses = train_model(model, criterion, optimizer, train_loader, val_loader,
+                                                          num_epochs=30)
+
+    # Return the last validation loss as the objective to minimize
+    return min(val_losses)
+
+BayesianOptimization = False
+model_save_name = "CAR-Net-optimizedv3.pth"
+
+def optimization():
+    study = optuna.create_study(direction='minimize')
+    study.optimize(objective, n_trials=30)
+
+    print("Number of finished trials: ", len(study.trials))
+    print("Best trial:")
+    trial = study.best_trial
+
+    print("  Value: ", trial.value)
+    print("  Params: ")
+    for key, value in trial.params.items():
+        print("    {}: {}".format(key, value))
+
+    # Use the best parameters to retrain the model
+    best_learning_rate = trial.params['learning_rate']
+    best_optimizer_name = trial.params['optimizer']
+    best_batch_size = trial.params['batch_size']
+    # save best parameters
+    with open("D:\\CTA data\\models\\best_params.txt", "w") as f:
+        f.write(f"Best learning rate: {best_learning_rate}\n")
+        f.write(f"Best optimizer: {best_optimizer_name}\n")
+        f.write(f"Best batch size: {best_batch_size}\n")
 
 
-    torch.save(trained_model.state_dict(), "D:\\CTA data\\models\\CAR-Net-256-26.pth")
+if __name__ == "__main__":
+    if BayesianOptimization:
+        optimization()
+    else:
+        with open("D:\\CTA data\\models\\best_params.txt", "r") as f:
+            best_learning_rate = float(f.readline().split(": ")[1])
+            best_optimizer_name = f.readline().split(": ")[1].strip()
+            best_batch_size = int(f.readline().split(": ")[1])
+
+    model = CARNet().to(device)
+    model.apply(weights_init)
+    criterion = mPD_loss_2()
+    optimizer = getattr(optim, best_optimizer_name)(model.parameters(), lr=best_learning_rate)
+    gradual = optim.lr_scheduler.StepLR(optimizer, step_size=40, gamma=0.1)
+    dataset = CenterlineDatasetSpherical(base_dir="D:\\CTA data\\")
+    train_loader, val_loader, test_loader = create_datasets(dataset, train_ratio=0.7, val_ratio=0.15, test_ratio=0.15,
+                                                            batch_size=best_batch_size, shuffle_train=True)
+
+    trained_model, train_losses, val_losses = train_model(model, criterion, optimizer, train_loader, val_loader,
+                                                          num_epochs=150, model_save_name=model_save_name)
+
+    torch.save(trained_model.state_dict(), f"D:\\CTA data\\models\\{model_save_name}")
     print("Model saved")
     plt.figure(figsize=(10, 5))
     plt.plot(train_losses, label='Train Loss')
