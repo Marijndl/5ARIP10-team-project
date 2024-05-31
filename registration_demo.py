@@ -1,3 +1,5 @@
+import random
+
 from torch.utils.data import DataLoader
 from data_loaders import *
 from model import CARNet
@@ -16,8 +18,7 @@ train_loader, val_loader, test_loader = create_datasets(CenterlineDatasetSpheric
 device = 'cuda'
 def evaluate_model(model, test_loader, loss, plot_outliers=False, std_threshold=8):
 
-    # Run model
-    # Iterate over the test_loader
+    print(len(test_loader)*256)
     all_distances = []
     times = []
     for batch in test_loader:
@@ -51,7 +52,7 @@ def evaluate_model(model, test_loader, loss, plot_outliers=False, std_threshold=
         # pythagorean theorem
         distances = np.mean(np.sqrt(np.sum(difference ** 2, axis=1)), axis=1)
         all_distances.extend(distances)
-        standard_deviation = np.std(distances)
+        standard_deviation = np.std(all_distances)
         threshold = np.mean(all_distances) + std_threshold * standard_deviation
         for idx, distance in enumerate(distances):
             if distance > threshold:
@@ -59,7 +60,7 @@ def evaluate_model(model, test_loader, loss, plot_outliers=False, std_threshold=
                 if plot_outliers == True:
                     plot_3D_centerline(original_3D, deformed_3D, original_2D, distances, idx)
         #plot random sample
-    plot_3D_centerline(original_3D, deformed_3D, original_2D, distances, 0)
+    plot_3D_centerline(original_3D, deformed_3D, original_2D, distances, random.randint(0, len(distances)-1))
 
 
     mPD = np.mean(distances)
@@ -106,4 +107,4 @@ def plot_3D_centerline(original_3D, deformed_3D, original_2D, distances, idx=0):
     ax.legend(['Original 2D centerline segment', 'Deformed 3D centerline segment', 'Original 3D centerline segment'])
     plt.show()
 
-evaluate_model(model, test_loader, loss, plot_outliers=False, std_threshold=8)
+evaluate_model(model, train_loader, loss, plot_outliers=False, std_threshold=8)
