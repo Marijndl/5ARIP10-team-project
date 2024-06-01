@@ -1,3 +1,5 @@
+import pickle
+
 import keyboard
 import optuna
 import torch
@@ -222,8 +224,7 @@ def train_model(model, criterion, optimizer, train_loader, val_loader, num_epoch
         if overwrite_model(model_save_name, best_val_loss):
             save_model(model, epoch, optimizer, epoch_train_loss,  epoch_val_loss, best_val_loss, model_save_name, scheduler=scheduler, scheduler_type=scheduler_type)
 
-    best_model = load_model(model, optimizer, f"D:\\CTA data\\models\\{model_save_name_val}", scheduler)[0]
-    return best_model, train_losses, val_losses
+    return train_losses, val_losses
 
 def overwrite_model(model_save_name, best_val_loss):
     overwrite = True
@@ -328,8 +329,9 @@ def on_key_press(event):
 keyboard.on_press(on_key_press)
 
 def evaluate_model(model, test_loader, loss):
+    model.eval()
     all_distances = []
-    times = []
+
     for batch in test_loader:
         batch['origin_3D'] = batch['origin_3D'].to(device)
         batch['shape_3D'] = batch['shape_3D'].to(device)
@@ -358,7 +360,8 @@ def evaluate_model(model, test_loader, loss):
         # pythagorean theorem
         distances = np.mean(np.sqrt(np.sum(difference ** 2, axis=1)), axis=1)
         all_distances.extend(distances)
-
+    plot_3D_centerline(original_3D, deformed_3D, original_2D, distances, -1)
+    print(f"Number of samples: {len(all_distances)}")
 
     mPD = np.mean(all_distances)
     std_mPD = np.std(all_distances)
@@ -366,6 +369,42 @@ def evaluate_model(model, test_loader, loss):
     print(f"Mean Projection Distance: {mPD:.2f}")
     print(f"Standard deviation: {std_mPD:.2f}")
     return mPD, std_mPD
+
+def plot_3D_centerline(original_3D, deformed_3D, original_2D, distances, idx=0):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    print(f"Mean Projection Distance: {distances[idx]}")
+
+    # Extract x, y, z coordinates from the input array
+    org_x = original_2D[idx, 0, :]
+    org_y = original_2D[idx, 1, :]
+
+    def_x = deformed_3D[idx, 0, :]
+    def_y = deformed_3D[idx, 1, :]
+    def_z = deformed_3D[idx, 2, :]
+    # def_z = deformed_3D[idx, 2, :]
+    # def_z = np.zeros(original_2D[idx, 2, :].shape)
+
+    org_x_3 = original_3D[idx, 0, :]
+    org_y_3 = original_3D[idx, 1, :]
+    org_z_3 = original_3D[idx, 2, :]
+
+    # Plot the lines connecting the points
+    ax.plot(org_x, org_y)
+    ax.plot(def_x, def_y)
+    ax.plot(org_x_3, org_y_3, org_z_3)
+
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    # set the aspect ratio of the plot to be equal
+    ax.set_aspect('equal', 'box')
+
+    ax.legend(
+        ['Original 2D centerline segment', 'Deformed 3D centerline segment', 'Original 3D centerline segment'])
+    plt.show()
+
 
 def objective(trial):
     # Suggest hyperparameters
@@ -394,14 +433,17 @@ def objective(trial):
     train_loader, val_loader, test_loader = create_datasets(dataset, train_ratio=0.7, val_ratio=0.15, test_ratio=0.15,
                                                             batch_size=batch_size, shuffle_train=True)
     print(f"Training with learning rate: {learning_rate}, optimizer: {optimizer_name}, batch size: {batch_size}, smoothing: {smoothing}, scheduler: {schedule_type}")
-    trained_model, train_losses, val_losses = train_model(model, criterion, optimizer, train_loader, val_loader,
+    train_losses, val_losses = train_model(model, criterion, optimizer, train_loader, val_loader,
                                                           num_epochs=optimization_epochs,
                                                           smoothing=smoothing,
                                                           scheduler=scheduler,
                                                           scheduler_type=schedule_type,
                                                           model_save_name=name,)
-
-    mPd, std_mPd = evaluate_model(trained_model, val_loader, criterion)
+    validation_name = name + "_val"
+    print(len(val_loader))
+    best_model = load_model(model, optimizer, f"D:\\CTA data\\models\\{validation_name}", scheduler)[0]
+    best_model.eval()
+    mPd, std_mPd = evaluate_model(best_model, val_loader, criterion)
     stop_training = False
     return mPd
 
@@ -411,9 +453,14 @@ def optimization(trails=30):
     study = optuna.create_study(direction='minimize')
     study.optimize(objective, n_trials=trails)
 
+
     print("Number of finished trials: ", len(study.trials))
     print("Best trial:")
     trial = study.best_trial
+
+    # save study
+    with open("D:\\CTA data\\models\\study.pkl", "wb") as f:
+        pickle.dump(study, f)
 
     print("  Value: ", trial.value)
     print("  Params: ")
@@ -451,8 +498,8 @@ scheduler_step_size = 10
 scheduler_gamma = 0.1
 
 BayesianOptimization = True  # Set to True to perform Bayesian optimization
-number_of_trials = 30
-optimization_epochs = 15
+number_of_trials = 1
+optimization_epochs = 1
 optimization_step_size = 6
 optimization_gamma = 0.1
 optimization_patience = 3
@@ -463,6 +510,8 @@ model_save_name = "CAR-Net-Optimizer_large_dataset"     # Name of the model to s
 checkpoint_path = f"D:\\CTA data\\models\\{model_save_name}_checkpoint"
 
 if __name__ == "__main__":
+
+
     if BayesianOptimization:
         learning_rate, optimizer_name, batch_size, smoothing, schedule_type = optimization(number_of_trials)
     elif load_best_params:
@@ -478,7 +527,7 @@ if __name__ == "__main__":
             smoothing = best_smoothing
             schedule_type = best_scheduler
 
-    print(f"Training with learning rate: {learning_rate}, optimizer: {optimizer_name}, batch size: {batch_size}", f"smoothing: {smoothing}, scheduler: {schedule_type}")
+
 
     model = CARNet().to(device)
     model.apply(weights_init)
@@ -497,7 +546,8 @@ if __name__ == "__main__":
         scheduler = None
         schedule_type = 'None'
 
-
+    print(f"Training with learning rate: {learning_rate}, optimizer: {optimizer_name}, batch size: {batch_size}",
+          f"smoothing: {smoothing}, scheduler: {schedule_type}")
     dataset = CenterlineDatasetSpherical(base_dir="D:\\CTA data\\")
     train_loader, val_loader, test_loader = create_datasets(dataset, train_ratio=0.7, val_ratio=0.15, test_ratio=0.15,
                                                             batch_size=batch_size, shuffle_train=True)
