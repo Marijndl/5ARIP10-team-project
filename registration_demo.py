@@ -17,7 +17,7 @@ loss = mPD_loss_2()
 train_loader, val_loader, test_loader = create_datasets(CenterlineDatasetSpherical(base_dir="D:\\CTA data\\"), train_ratio=0.7, val_ratio=0.15, test_ratio=0.15, batch_size=512, shuffle_train=False)
 
 device = 'cuda'
-def evaluate_model(model, test_loader, loss, plot_outliers=False, std_threshold=8):
+def evaluate_model(model, test_loader, loss, plot_outliers=False, std_threshold=10):
     model.eval()
     all_distances = []
     times = []
@@ -61,7 +61,7 @@ def evaluate_model(model, test_loader, loss, plot_outliers=False, std_threshold=
                     plot_3D_centerline(original_3D, deformed_3D, original_2D, distances, idx)
         #plot random sample
 
-    plot_3D_centerline(original_3D, deformed_3D, original_2D, distances, -1)
+    plot_3D_centerline(original_3D, deformed_3D, original_2D, distances, random.randint(0, len(distances)-1))
     print(f"Number of samples: {len(all_distances)}")
     mPD = np.mean(all_distances)
     std_mPD = np.std(all_distances)
@@ -107,4 +107,4 @@ def plot_3D_centerline(original_3D, deformed_3D, original_2D, distances, idx=0):
     ax.legend(['Original 2D centerline segment', 'Deformed 3D centerline segment', 'Original 3D centerline segment'])
     plt.show()
 
-evaluate_model(model, val_loader, loss, plot_outliers=False, std_threshold=8)
+evaluate_model(model, val_loader, loss, plot_outliers=True, std_threshold=10)

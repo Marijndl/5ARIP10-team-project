@@ -222,7 +222,7 @@ def train_model(model, criterion, optimizer, train_loader, val_loader, num_epoch
         # if the model already exists, read the best_val_loss from the file, if it is lower than the current
         # best_val_loss, don't overwrite it
         if overwrite_model(model_save_name, best_val_loss):
-            save_model(model, epoch, optimizer, epoch_train_loss,  epoch_val_loss, best_val_loss, model_save_name, scheduler=scheduler, scheduler_type=scheduler_type)
+            save_model(model, epoch+1, optimizer, epoch_train_loss,  epoch_val_loss, best_val_loss, model_save_name, scheduler=scheduler, scheduler_type=scheduler_type)
 
     return train_losses, val_losses
 
@@ -360,8 +360,7 @@ def evaluate_model(model, test_loader, loss):
         # pythagorean theorem
         distances = np.mean(np.sqrt(np.sum(difference ** 2, axis=1)), axis=1)
         all_distances.extend(distances)
-    plot_3D_centerline(original_3D, deformed_3D, original_2D, distances, -1)
-    print(f"Number of samples: {len(all_distances)}")
+    #plot_3D_centerline(original_3D, deformed_3D, original_2D, distances, -1)
 
     mPD = np.mean(all_distances)
     std_mPD = np.std(all_distances)
@@ -440,7 +439,6 @@ def objective(trial):
                                                           scheduler_type=schedule_type,
                                                           model_save_name=name,)
     validation_name = name + "_val"
-    print(len(val_loader))
     best_model = load_model(model, optimizer, f"D:\\CTA data\\models\\{validation_name}", scheduler)[0]
     best_model.eval()
     mPd, std_mPd = evaluate_model(best_model, val_loader, criterion)
@@ -461,6 +459,10 @@ def optimization(trails=30):
     # save study
     with open("D:\\CTA data\\models\\study.pkl", "wb") as f:
         pickle.dump(study, f)
+
+
+    # with open("D:\\CTA data\\models\\study.pkl", "rb") as f:
+    #     study = pickle.load(f)
 
     print("  Value: ", trial.value)
     print("  Params: ")
@@ -498,12 +500,12 @@ scheduler_step_size = 10
 scheduler_gamma = 0.1
 
 BayesianOptimization = True  # Set to True to perform Bayesian optimization
-number_of_trials = 1
-optimization_epochs = 1
+number_of_trials = 20
+optimization_epochs = 15
 optimization_step_size = 6
 optimization_gamma = 0.1
 optimization_patience = 3
-optimization_factor = 0.1
+optimization_factor = 0.2
 
 load_best_params = True    # Load the best parameters found by the Bayesian optimization from the best_params.txt file
 model_save_name = "CAR-Net-Optimizer_large_dataset"     # Name of the model to save
@@ -552,7 +554,7 @@ if __name__ == "__main__":
     train_loader, val_loader, test_loader = create_datasets(dataset, train_ratio=0.7, val_ratio=0.15, test_ratio=0.15,
                                                             batch_size=batch_size, shuffle_train=True)
 
-    trained_model, train_losses, val_losses = train_model(model, criterion, optimizer, train_loader, val_loader,
+    train_losses, val_losses = train_model(model, criterion, optimizer, train_loader, val_loader,
                                                           num_epochs=number_of_epochs,
                                                           model_save_name=model_save_name,
                                                           checkpoint_path=checkpoint_path,
@@ -569,8 +571,6 @@ if __name__ == "__main__":
     plt.legend()
     plt.title('Training and Validation Loss')
     plt.show()
-
-    test_loss = test_model(trained_model, criterion, test_loader)
 
 
 
