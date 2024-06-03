@@ -220,7 +220,7 @@ stop_training = False
 def on_key_press(event):
     global stop_training
     if event.name == 'K':
-        print("Key press 'K' detected, stopping training at the end of the epoch")
+        print("ey press 'K' detected, stopping training at the end of the epoch")
         stop_training = True
 
 # Register the key press event
@@ -251,6 +251,19 @@ if __name__ == "__main__":
     criterion = mPD_loss_2()
     total_params = sum(p.numel() for p in model.parameters())
     print(f"Number of parameters: {total_params}")
+
+    if load_best_params:
+        with open("Models\\Hyperparameter_optimization\\best_params.txt", "r") as f:
+            best_learning_rate = float(f.readline().split(": ")[1])
+            best_optimizer_name = f.readline().split(": ")[1].strip()
+            best_batch_size = int(f.readline().split(": ")[1])
+            best_smoothing = float(f.readline().split(": ")[1])
+            best_scheduler = f.readline().split(": ")[1].strip()
+            batch_size = best_batch_size
+            learning_rate = best_learning_rate
+            optimizer_name = best_optimizer_name
+            smoothing = best_smoothing
+            schedule_type = best_scheduler
 
     #Apply a scheduler
     optimizer = getattr(optim, optimizer_name)(model.parameters(), lr=learning_rate, weight_decay=1e-5)
