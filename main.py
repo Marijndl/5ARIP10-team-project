@@ -134,7 +134,7 @@ def train_model(model, criterion, optimizer, train_loader, val_loader, num_epoch
         if stop_training:
             model_save_name_checkpoint = model_save_name.split(".")[0] + "_checkpoint"
             tqdm.write(f"Stopped training at epoch {epoch + 1}, saving the model as a checkpoint with the name: {model_save_name_checkpoint}")
-            save_model(model, epoch, optimizer,epoch_train_loss,  epoch_val_loss, best_val_loss, model_save_name_checkpoint, scheduler=scheduler, scheduler_type=scheduler_type)
+            save_model(model, epoch, batch_size, learning_rate, smoothing, optimizer,epoch_train_loss,  epoch_val_loss, best_val_loss, model_save_name_checkpoint, scheduler=scheduler, scheduler_type=scheduler_type)
             break
 
         loop = tqdm(enumerate(preloaded_train_batches), total=len(preloaded_train_batches), leave=True)
@@ -203,7 +203,7 @@ def train_model(model, criterion, optimizer, train_loader, val_loader, num_epoch
             print(f"New best validation loss, saving the model as {model_save_name_val}")
             best_val_loss = epoch_val_loss
             if overwrite_model(model_save_name_val, best_val_loss):
-                save_model(model, epoch+1, optimizer, epoch_train_loss,  epoch_val_loss, best_val_loss, model_save_name_val, scheduler=scheduler, scheduler_type=scheduler_type)
+                save_model(model, epoch+1, batch_size, learning_rate, smoothing,  optimizer, epoch_train_loss,  epoch_val_loss, best_val_loss, model_save_name_val, scheduler=scheduler, scheduler_type=scheduler_type)
 
 
     if stop_training == False:
@@ -211,7 +211,7 @@ def train_model(model, criterion, optimizer, train_loader, val_loader, num_epoch
         # if the model already exists, read the best_val_loss from the file, if it is lower than the current
         # best_val_loss, don't overwrite it
         if overwrite_model(model_save_name, best_val_loss):
-            save_model(model, epoch+1, optimizer, epoch_train_loss,  epoch_val_loss, best_val_loss, model_save_name, scheduler=scheduler, scheduler_type=scheduler_type)
+            save_model(model, epoch+1, batch_size, learning_rate, smoothing,  optimizer, epoch_train_loss,  epoch_val_loss, best_val_loss, model_save_name, scheduler=scheduler, scheduler_type=scheduler_type)
 
     return train_losses, val_losses
 

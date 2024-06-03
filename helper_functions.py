@@ -33,7 +33,7 @@ def overwrite_model(model_save_name, best_val_loss):
     return overwrite
 
 
-def save_model(model, epoch, optimizer, train_loss, val_loss, best_val_loss, model_save_name, scheduler=None, scheduler_type='None'):
+def save_model(model, epoch, batch_size, learning_rate, smoothing, optimizer, train_loss, val_loss, best_val_loss, model_save_name, scheduler=None, scheduler_type='None'):
     if scheduler:
         torch.save({
             'epoch': epoch,
