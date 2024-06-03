@@ -369,42 +369,6 @@ def evaluate_model(model, test_loader, loss):
     print(f"Standard deviation: {std_mPD:.2f}")
     return mPD, std_mPD
 
-def plot_3D_centerline(original_3D, deformed_3D, original_2D, distances, idx=0):
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-
-    print(f"Mean Projection Distance: {distances[idx]}")
-
-    # Extract x, y, z coordinates from the input array
-    org_x = original_2D[idx, 0, :]
-    org_y = original_2D[idx, 1, :]
-
-    def_x = deformed_3D[idx, 0, :]
-    def_y = deformed_3D[idx, 1, :]
-    def_z = deformed_3D[idx, 2, :]
-    # def_z = deformed_3D[idx, 2, :]
-    # def_z = np.zeros(original_2D[idx, 2, :].shape)
-
-    org_x_3 = original_3D[idx, 0, :]
-    org_y_3 = original_3D[idx, 1, :]
-    org_z_3 = original_3D[idx, 2, :]
-
-    # Plot the lines connecting the points
-    ax.plot(org_x, org_y)
-    ax.plot(def_x, def_y)
-    ax.plot(org_x_3, org_y_3, org_z_3)
-
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
-    # set the aspect ratio of the plot to be equal
-    ax.set_aspect('equal', 'box')
-
-    ax.legend(
-        ['Original 2D centerline segment', 'Deformed 3D centerline segment', 'Original 3D centerline segment'])
-    plt.show()
-
-
 def objective(trial):
     # Suggest hyperparameters
     global batch_size, learning_rate, optimizer_name, optimization_epochs, smoothing, schedule_type, stop_training
@@ -484,6 +448,8 @@ def optimization(trails=30):
         f.write(f"Best scheduler: {trial.params['schedule_type']}\n")
     return best_learning_rate, best_optimizer_name, best_batch_size, best_smoothing, best_scheduler
 
+
+
 # Hyperparameters
 batch_size = 256
 learning_rate = 0.02
@@ -495,11 +461,10 @@ schedule_type = 'StepLR' # Use 'ReduceLROnPlateau' or 'StepLR'
 
 
 # Learning rate scheduler
-
-scheduler_step_size = 10
+scheduler_step_size = 6
 scheduler_gamma = 0.1
 
-BayesianOptimization = True  # Set to True to perform Bayesian optimization
+BayesianOptimization = False # Set to True to perform Bayesian optimization
 number_of_trials = 20
 optimization_epochs = 15
 optimization_step_size = 6
@@ -508,12 +473,10 @@ optimization_patience = 3
 optimization_factor = 0.2
 
 load_best_params = True    # Load the best parameters found by the Bayesian optimization from the best_params.txt file
-model_save_name = "CAR-Net-Optimizer_large_dataset"     # Name of the model to save
+model_save_name = "CAR-Net-Optimizer_trial0"     # Name of the model to save
 checkpoint_path = f"D:\\CTA data\\models\\{model_save_name}_checkpoint"
 
 if __name__ == "__main__":
-
-
     if BayesianOptimization:
         learning_rate, optimizer_name, batch_size, smoothing, schedule_type = optimization(number_of_trials)
     elif load_best_params:
@@ -539,7 +502,7 @@ if __name__ == "__main__":
         if schedule_type == 'ReduceLROnPlateau':
             scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5, verbose=True)
         elif schedule_type == 'StepLR':
-            scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.1)
+            scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=scheduler_step_size, gamma=scheduler_gamma)
         elif schedule_type == 'None':
             scheduler = None
         else:
