@@ -62,7 +62,7 @@ class mPD_loss_2(nn.Module):
 torch.autograd.set_detect_anomaly(True)
 torch.cuda.empty_cache()
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() and torch.cuda.get_device_properties(0).total_memory > 5e9 else "cpu")
 
 def weights_init(m):
     if isinstance(m, nn.Conv1d):
@@ -534,6 +534,4 @@ if __name__ == "__main__":
     plt.legend()
     plt.title('Training and Validation Loss')
     plt.show()
-
-
 
