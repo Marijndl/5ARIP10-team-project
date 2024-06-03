@@ -10,13 +10,13 @@ mpl.use('Qt5Agg')
 device = torch.device("cuda" if torch.cuda.is_available() and torch.cuda.get_device_properties(0).total_memory > 5e9 else "cpu")
 
 # Load the model
+model = CARNet().to(device)
 checkpoint = torch.load("D:\\CTA data\\models\\CAR-Net-Optimizer_trial0_val.pth")
 model.load_state_dict(checkpoint['model_state_dict'])
-model = CARNet().to(device)
 loss = mPD_loss_2()
 
 # Load the data
-train_loader, val_loader, test_loader = create_datasets(CenterlineDatasetSpherical(base_dir="D:\\CTA data\\"), train_ratio=0.7, val_ratio=0.15, test_ratio=0.15, batch_size=512, shuffle_train=False)
+train_loader, val_loader, test_loader = create_datasets(CenterlineDatasetSpherical(base_dir="D:\\CTA data\\", load_all=False), train_ratio=0.7, val_ratio=0.15, test_ratio=0.15, batch_size=512, shuffle_train=False)
 
 def evaluate_model(model, test_loader, loss, plot_outliers=False, std_threshold=10):
     model.eval()
@@ -108,4 +108,4 @@ def plot_3D_centerline(original_3D, deformed_3D, original_2D, distances, idx=0):
     ax.legend(['Original 2D centerline segment', 'Deformed 3D centerline segment', 'Original 3D centerline segment'])
     plt.show()
 
-evaluate_model(model, val_loader, loss, plot_outliers=False, std_threshold=10)
+evaluate_model(model, test_loader, loss, plot_outliers=False, std_threshold=10)
