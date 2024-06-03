@@ -71,7 +71,7 @@ def weights_init(m):
     elif isinstance(m, nn.ConvTranspose1d):
         nn.init.normal_(m.weight.data, mean=0.0, std=1)
 
-def train_model(model, criterion, optimizer, train_loader, val_loader, num_epochs=186,
+def train_model(model, criterion, optimizer, train_loader, val_loader,batch_size, learning_rate ,num_epochs=186,
                 model_save_name="CAR-Net-val.pth", checkpoint_path=None, new_learning_rate_factor=None, scheduler=None, smoothing=0.02, scheduler_type='None'):
     """
     Function to train the model, save the best model, and return the training and validation losses. When a
@@ -288,7 +288,7 @@ if __name__ == "__main__":
                                                             batch_size=batch_size, shuffle_train=True)
 
     #Train the model
-    train_losses, val_losses = train_model(model, criterion, optimizer, train_loader, val_loader,
+    train_losses, val_losses = train_model(model, criterion, optimizer, train_loader, val_loader,batch_size, learning_rate,
                                                           num_epochs=number_of_epochs,
                                                           model_save_name=model_save_name,
                                                           checkpoint_path=checkpoint_path,
