@@ -61,10 +61,10 @@ class CenterlineDatasetSpherical(Dataset):
             self.offset_list = np.genfromtxt(os.path.join(base_dir, "Offset_deformations_interp_353_10_big.txt"),
                                              delimiter=",")
         else:
-            self.origin_2D = torch.load(os.path.join(base_dir, "origin_2D_interp_353.pt"))
-            self.origin_3D = torch.load(os.path.join(base_dir, "origin_3D_interp_353.pt"))
-            self.shape_2D = torch.load(os.path.join(base_dir, "shape_2D_interp_353.pt"))
-            self.shape_3D = torch.load(os.path.join(base_dir, "shape_3D_interp_353.pt"))
+            self.origin_2D = torch.load(os.path.join(base_dir, "origin_2D_interp_big.pt"))
+            self.origin_3D = torch.load(os.path.join(base_dir, "origin_3D_interp_big.pt"))
+            self.shape_2D = torch.load(os.path.join(base_dir, "shape_2D_interp_big.pt"))
+            self.shape_3D = torch.load(os.path.join(base_dir, "shape_3D_interp_big.pt"))
             self.offset_list = np.genfromtxt(os.path.join(base_dir, "Offset_deformations.txt"), delimiter=",")
 
 
