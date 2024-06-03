@@ -10,7 +10,7 @@ from spherical_coordinates import *
 
 
 #Load data
-directory_2D = "D:\\CTA data\\Segments_deformed_5\\"
+directory_2D = "D:\\CTA data\\Segments_deformed_6\\"
 file_names_2D = os.listdir(directory_2D)
 directory_3D = "D:\\CTA data\\Segments bspline 353\\"
 file_names_3D = os.listdir(directory_3D)
@@ -68,8 +68,8 @@ for part in range(partitions):
             sha_2D = torch.cat((sha_2D, shape_2D), dim=0)
             sha_3D = torch.cat((sha_3D, shape_3D), dim=0)
 
-    torch.save(org_2D, f'D:\\CTA data\\pt files\\origin_2D_interp_353_part{part}.pt')
-    torch.save(org_3D, f'D:\\CTA data\\pt files\\origin_3D_interp_353_part{part}.pt')
-    torch.save(sha_2D, f'D:\\CTA data\\pt files\\shape_2D_interp_353_part{part}.pt')
-    torch.save(sha_3D, f'D:\\CTA data\\pt files\\shape_3D_interp_353_part{part}.pt')
+    torch.save(org_2D, f'D:\\CTA data\\pt files big deformation\\origin_2D_interp_353_big_part{part}.pt')
+    torch.save(org_3D, f'D:\\CTA data\\pt files big deformation\\origin_3D_interp_353_big_part{part}.pt')
+    torch.save(sha_2D, f'D:\\CTA data\\pt files big deformation\\shape_2D_interp_353_big_part{part}.pt')
+    torch.save(sha_3D, f'D:\\CTA data\\pt files big deformation\\shape_3D_interp_353_big_part{part}.pt')
     print(f"Done, total nans: {total_nans}")

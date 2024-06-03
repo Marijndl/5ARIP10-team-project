@@ -35,8 +35,8 @@ if __name__ == "__main__":
             offset_list.append(offset)
             samples = np.linspace(offset, offset + 2 * np.pi, num=352)
             deformation = np.sin(samples)
-            spherical_coordinates[:, 1] += 0.10 * deformation
-            spherical_coordinates[:, 2] += 0.10 * deformation
+            spherical_coordinates[:, 1] += 0.50 * deformation
+            spherical_coordinates[:, 2] += 0.50 * deformation
 
             print(file + " - " + str(i) + " - Offset: " + str(offset))
 
@@ -45,10 +45,10 @@ if __name__ == "__main__":
 
             # Save to CSV with header
             header = "X, Y"
-            np.savetxt(f"D:\\CTA data\\Segments_deformed_5\\{file[:-4]}_def2D_{str(i).zfill(2)}.csv", reconstructed_coordinates[:,:2], delimiter=",", header=header)
+            np.savetxt(f"D:\\CTA data\\Segments_deformed_6\\{file[:-4]}_def2D_{str(i).zfill(2)}.csv", reconstructed_coordinates[:,:2], delimiter=",", header=header)
 
     # Save the offsets to a .txt file:
-    with open(f"D:\\CTA data\\Offset_deformations_interp_353_10.txt", 'w') as file:
+    with open(f"D:\\CTA data\\Offset_deformations_interp_353_10_big.txt", 'w') as file:
         for item in offset_list:
             file.write(str(item) + '\n')
 
