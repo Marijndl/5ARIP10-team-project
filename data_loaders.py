@@ -1,5 +1,5 @@
 import os
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, Subset
 from spherical_coordinates import *
 import torch
 
@@ -52,13 +52,31 @@ class CenterlineDataset(Dataset):
 
 
 class CenterlineDatasetSpherical(Dataset):
-    def __init__(self, base_dir, transform=None):
-        self.origin_2D = torch.load(os.path.join(base_dir, "origin_2D_interp_353.pt"))
-        self.origin_3D = torch.load(os.path.join(base_dir, "origin_3D_interp_353.pt"))
-        self.shape_2D = torch.load(os.path.join(base_dir, "shape_2D_interp_353.pt"))
-        self.shape_3D = torch.load(os.path.join(base_dir, "shape_3D_interp_353.pt"))
-        self.offset_list = np.genfromtxt(os.path.join(base_dir, "Offset_deformations.txt"), delimiter=",")
+    def __init__(self, base_dir, transform=None, load_all=True):
+        if load_all:
+            self.origin_2D = self.load_and_concatenate(base_dir, "origin_2D_interp_353_big_part", 4)
+            self.origin_3D = self.load_and_concatenate(base_dir, "origin_3D_interp_353_big_part", 4)
+            self.shape_2D = self.load_and_concatenate(base_dir, "shape_2D_interp_353_big_part", 4)
+            self.shape_3D = self.load_and_concatenate(base_dir, "shape_3D_interp_353_big_part", 4)
+            self.offset_list = np.genfromtxt(os.path.join(base_dir, "Offset_deformations_interp_353_10_big.txt"),
+                                             delimiter=",")
+        else:
+            self.origin_2D = torch.load(os.path.join(base_dir, "origin_2D_interp_big.pt"))
+            self.origin_3D = torch.load(os.path.join(base_dir, "origin_3D_interp_big.pt"))
+            self.shape_2D = torch.load(os.path.join(base_dir, "shape_2D_interp_big.pt"))
+            self.shape_3D = torch.load(os.path.join(base_dir, "shape_3D_interp_big.pt"))
+            self.offset_list = np.genfromtxt(os.path.join(base_dir, "Offset_deformations.txt"), delimiter=",")
+
+
+
         self.transform = transform
+
+    def load_and_concatenate(self, base_dir, file_prefix, num_parts):
+        parts = []
+        for i in range(num_parts):
+            part_path = os.path.join(base_dir, f"{file_prefix}{i+1}.pt")
+            parts.append(torch.load(part_path))
+        return torch.cat(parts, dim=0)
 
     def __len__(self):
         return self.shape_2D.shape[0]
@@ -79,12 +97,57 @@ class CenterlineDatasetSpherical(Dataset):
 
         return sample
 
+
+def create_datasets(dataset, train_ratio=0.7, val_ratio=0.15, test_ratio=0.15, batch_size=512, shuffle_train=True):
+    """
+    Splits the dataset into training, validation, and test sets based on the  indices, returns a data loader
+
+    Parameters:
+    - dataset: the dataset to split.
+    - train_ratio: the proportion of data to use for training.
+    - val_ratio: the proportion of data to use for validation.
+    - test_ratio: the proportion of data to use for testing.
+    - batch_size: the batch size for the DataLoaders.
+    - shuffle_train: wether to shuffle the training data
+
+    Returns:
+    - train_loader: DataLoader for the training set.
+    - val_loader: DataLoader for the validation set.
+    - test_loader: DataLoader for the test set.
+    """
+    assert train_ratio + val_ratio + test_ratio == 1, "The sum of train_ratio, val_ratio, and test_ratio must be 1."
+
+    dataset_size = len(dataset)
+    indices = list(range(dataset_size))
+
+    train_size = int(train_ratio * dataset_size)
+    val_size = int(val_ratio * dataset_size)
+    test_size = dataset_size - train_size - val_size
+
+    # Define the fixed indices for each split
+    train_indices = indices[:train_size]
+    val_indices = indices[train_size:train_size + val_size]
+    test_indices = indices[train_size + val_size:]
+
+    # Create subsets using the defined indices
+    train_dataset = Subset(dataset, train_indices)
+    val_dataset = Subset(dataset, val_indices)
+    test_dataset = Subset(dataset, test_indices)
+
+    # Create DataLoaders for each subset
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle_train)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+
+    return train_loader, val_loader, test_loader
+
+
 if __name__ == '__main__':
     train_dataset = CenterlineDatasetSpherical(base_dir="D:\\CTA data\\")
     train_loader = DataLoader(train_dataset, batch_size=512, shuffle=True)
 
     data_iter = iter(train_loader)
-    sample = next(data_iter)
+    batch = next(data_iter)
 
     pass
 
