@@ -70,8 +70,6 @@ def evaluate_model(model, test_loader, loss):
 
 
 def objective(trial):
-    # Suggest hyperparameters
-    global batch_size, learning_rate, optimizer_name, optimization_epochs, smoothing, schedule_type, stop_training
     learning_rate = trial.suggest_float('learning_rate', 1e-2, 1e-1, log=True)
     optimizer_name = trial.suggest_categorical('optimizer', ['Adam'])
     batch_size = trial.suggest_categorical('batch_size', [64, 128, 256, 512])
@@ -89,13 +87,13 @@ def objective(trial):
         scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=optimization_step_size, gamma=optimization_gamma)
     else:
         scheduler = None
-    name = f"CAR-Net-Optimizer_trial{trial.number}"
+    name = f"CAR-Net-Optimizerv2_trial{trial.number}"
 
-    dataset = CenterlineDatasetSpherical(base_dir="D:\\CTA data\\")
+    dataset = CenterlineDatasetSpherical(base_dir="D:\\CTA data\\", load_all=False)
     train_loader, val_loader, test_loader = create_datasets(dataset, train_ratio=0.7, val_ratio=0.15, test_ratio=0.15,
                                                             batch_size=batch_size, shuffle_train=True)
     print(f"Training with learning rate: {learning_rate}, optimizer: {optimizer_name}, batch size: {batch_size}, smoothing: {smoothing}, scheduler: {schedule_type}")
-    train_losses, val_losses = train_model(model, criterion, optimizer, train_loader, val_loader,
+    train_losses, val_losses = train_model(model, criterion, optimizer, train_loader, val_loader,batch_size, learning_rate,
                                                           num_epochs=optimization_epochs,
                                                           smoothing=smoothing,
                                                           scheduler=scheduler,
@@ -149,5 +147,4 @@ def optimization(trails=30):
 if __name__ == "__main__":
 
     #Perform Bayesian hyperparameter tuning using Optuna
-    number_of_trials = 20
     learning_rate, optimizer_name, batch_size, smoothing, schedule_type = optimization(number_of_trials)
