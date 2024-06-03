@@ -1,0 +1,5 @@
+Best learning rate: 0.06878889441341672
+Best optimizer: Adam
+Best batch size: 64
+Best smoothing: 0.0025179340385016688
+Best scheduler: StepLR
