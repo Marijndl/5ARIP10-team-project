@@ -52,12 +52,21 @@ class CenterlineDataset(Dataset):
 
 
 class CenterlineDatasetSpherical(Dataset):
-    def __init__(self, base_dir, transform=None):
-        self.origin_2D = self.load_and_concatenate(base_dir, "origin_2D_interp_353_big_part", 4)
-        self.origin_3D = self.load_and_concatenate(base_dir, "origin_3D_interp_353_big_part", 4)
-        self.shape_2D = self.load_and_concatenate(base_dir, "shape_2D_interp_353_big_part", 4)
-        self.shape_3D = self.load_and_concatenate(base_dir, "shape_3D_interp_353_big_part", 4)
-        self.offset_list = np.genfromtxt(os.path.join(base_dir, "Offset_deformations_interp_353_10_big.txt"), delimiter=",")
+    def __init__(self, base_dir, transform=None, load_all=True):
+        if load_all:
+            self.origin_2D = self.load_and_concatenate(base_dir, "origin_2D_interp_353_big_part", 4)
+            self.origin_3D = self.load_and_concatenate(base_dir, "origin_3D_interp_353_big_part", 4)
+            self.shape_2D = self.load_and_concatenate(base_dir, "shape_2D_interp_353_big_part", 4)
+            self.shape_3D = self.load_and_concatenate(base_dir, "shape_3D_interp_353_big_part", 4)
+            self.offset_list = np.genfromtxt(os.path.join(base_dir, "Offset_deformations_interp_353_10_big.txt"),
+                                             delimiter=",")
+        else:
+            self.origin_2D = torch.load(os.path.join(base_dir, "origin_2D_interp_353.pt"))
+            self.origin_3D = torch.load(os.path.join(base_dir, "origin_3D_interp_353.pt"))
+            self.shape_2D = torch.load(os.path.join(base_dir, "shape_2D_interp_353.pt"))
+            self.shape_3D = torch.load(os.path.join(base_dir, "shape_3D_interp_353.pt"))
+            self.offset_list = np.genfromtxt(os.path.join(base_dir, "Offset_deformations.txt"), delimiter=",")
+
 
 
         self.transform = transform
