@@ -7,6 +7,14 @@ offset_list = np.genfromtxt("D:\\CTA data\\Offset_deformations.txt", delimiter="
 
 class CenterlineDataset(Dataset):
     def __init__(self, data_dir_2D, data_dir_3D, transform=None):
+        """
+        Initializes the dataset with directories for 2D and 3D data.
+
+        Parameters:
+        - data_dir_2D: Directory containing 2D data files.
+        - data_dir_3D: Directory containing 3D data files.
+        - transform: Optional transform to be applied on a sample.
+        """
         self.data_dir_2D = data_dir_2D
         self.data_dir_3D = data_dir_3D
         self.transform = transform
@@ -53,6 +61,14 @@ class CenterlineDataset(Dataset):
 
 class CenterlineDatasetSpherical(Dataset):
     def __init__(self, base_dir, transform=None, load_all=True):
+        """
+        Initializes the dataset with base directory and transformation option.
+
+        Parameters:
+        - base_dir: Base directory containing the data files.
+        - transform: Optional transform to be applied on a sample.
+        - load_all: If True, load and concatenate all parts; otherwise, load from pre-saved tensors.
+        """
         if load_all:
             self.origin_2D = self.load_and_concatenate(base_dir, "origin_2D_interp_353_big_part", 4)
             self.origin_3D = self.load_and_concatenate(base_dir, "origin_3D_interp_353_big_part", 4)
@@ -72,6 +88,17 @@ class CenterlineDatasetSpherical(Dataset):
         self.transform = transform
 
     def load_and_concatenate(self, base_dir, file_prefix, num_parts):
+        """
+        Load and concatenate multiple parts of data.
+
+        Parameters:
+        - base_dir: Base directory containing the data files.
+        - file_prefix: Prefix of the file names.
+        - num_parts: Number of parts to load and concatenate.
+
+        Returns:
+        - Concatenated tensor.
+        """
         parts = []
         for i in range(num_parts):
             part_path = os.path.join(base_dir, f"{file_prefix}{i+1}.pt")
