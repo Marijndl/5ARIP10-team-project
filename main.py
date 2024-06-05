@@ -19,6 +19,16 @@ class mPD_loss_2(nn.Module):
         super().__init__()
 
     def cartesian_tensor(self, origin, spherical):
+        """
+        Converts spherical coordinates to Cartesian coordinates and concatenates them with the origin tensor.
+
+        Parameters:
+        - origin: Original tensor
+        - spherical: Spherical coordinates tensor
+
+        Returns:
+        - cartesian: Cartesian coordinates tensor
+        """
         r = spherical[:, 0, :].clone().requires_grad_(True)
         theta = spherical[:, 1, :].clone().requires_grad_(True)
         phi = spherical[:, 2, :].clone().requires_grad_(True)
@@ -34,6 +44,15 @@ class mPD_loss_2(nn.Module):
         return cartesian
 
     def smoothness_loss(self, deformation_field):
+        """
+        Computes the smoothness loss based on the deformation field gradients.
+
+        Parameters:
+        - deformation_field: The deformation field tensor
+
+        Returns:
+        - smooth_loss: Smoothness loss value
+        """
         def gradient(tensor):
             grad_y = tensor[:, :, 1:] - tensor[:, :, :-1]
             grad_x = tensor[:, 1:, :] - tensor[:, :-1, :]
@@ -45,6 +64,20 @@ class mPD_loss_2(nn.Module):
         return smooth_loss
 
     def forward(self, origin_3D, spherical_3D, origin_2D, spherical_2D, deformation_field, alpha=0.02):
+        """
+        Forward pass for the custom loss function.
+
+        Parameters:
+        - origin_3D: Original 3D tensor
+        - spherical_3D: Spherical 3D coordinates
+        - origin_2D: Original 2D tensor
+        - spherical_2D: Spherical 2D coordinates
+        - deformation_field: Deformation field tensor
+        - alpha: Smoothing factor
+
+        Returns:
+        - total_loss: Total loss value combining difference and smoothness loss
+        """
         spherical_3D_deformed = spherical_3D.clone()
         spherical_3D_deformed[:, 1:, :] = torch.add(spherical_3D_deformed[:, 1:, :], deformation_field)
 
@@ -66,6 +99,12 @@ torch.cuda.empty_cache()
 device = torch.device("cuda" if torch.cuda.is_available() and torch.cuda.get_device_properties(0).total_memory > 5e9 else "cpu")
 
 def weights_init(m):
+    """
+    Initializes the weights of the model.
+
+    Parameters:
+    - m: Model layer
+    """
     if isinstance(m, nn.Conv1d):
         nn.init.normal_(m.weight.data, mean=0.0, std=1)
     elif isinstance(m, nn.ConvTranspose1d):
