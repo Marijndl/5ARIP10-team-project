@@ -35,6 +35,16 @@ class DualBranch(nn.Module):
         )
 
     def forward(self, origin, shape):
+        """
+        Forward pass through the DualBranch module.
+
+        Parameters:
+        - origin: Input tensor for the origin branch
+        - shape: Input tensor for the shape branch
+
+        Returns:
+        - Combined tensor after processing through origin and shape branches and applying batch normalization and ReLU.
+        """
         origin_feat = self.origin_branch(origin)
         shape_feat = self.shape_branch(shape)
 
@@ -69,6 +79,15 @@ class Downsample(nn.Module):
         self.conv2 = nn.Sequential(nn.Conv1d(in_channels=in_channels, out_channels=out, kernel_size=3, padding=1, stride=2))
 
     def forward(self, x):
+        """
+        Forward pass through the Downsample module.
+
+        Parameters:
+        - x: Input tensor
+
+        Returns:
+        - Downsampled tensor after processing through convolutional layers and adding a skip connection.
+        """
         return self.bn_relu_add(torch.add(self.conv_layers(x), self.conv2(x)))
     
 class grey(nn.Module):
@@ -82,6 +101,15 @@ class grey(nn.Module):
         )
 
     def forward(self, x):
+        """
+        Forward pass through the grey module.
+
+        Parameters:
+        - x: Input tensor
+
+        Returns:
+        - Processed tensor after applying convolution, batch normalization, and ReLU.
+        """
         return self.conv(x)
 
 class orange(nn.Module):
@@ -94,6 +122,15 @@ class orange(nn.Module):
         )
         
     def forward(self, x):
+        """
+        Forward pass through the orange module.
+
+        Parameters:
+        - x: Input tensor
+
+        Returns:
+        - Upsampled tensor after applying transpose convolution, batch normalization, and ReLU.
+        """
         return self.upconv(x)
 
 
@@ -105,6 +142,18 @@ class CARNet(nn.Module):
         self.unet_backbone = UNet()
 
     def forward(self, x3d_origin, x3d_shape, x2d_origin, x2d_shape):
+        """
+        Forward pass through the CARNet model.
+
+        Parameters:
+        - x3d_origin: 3D origin input tensor
+        - x3d_shape: 3D shape input tensor
+        - x2d_origin: 2D origin input tensor
+        - x2d_shape: 2D shape input tensor
+
+        Returns:
+        - deformation_field: Output tensor from the UNet backbone representing the deformation field.
+        """
 
         x3d = self.dual_branch_3d(x3d_origin, x3d_shape)
         x2d = self.dual_branch_2d(x2d_origin, x2d_shape)
@@ -145,6 +194,15 @@ class UNet(nn.Module):
         self.output_layer = nn.Conv1d(64, 2, kernel_size=1)
 
     def forward(self, x):
+        """
+        Forward pass through the UNet model.
+
+        Parameters:
+        - x: Input tensor
+
+        Returns:
+        - deformation_field: Output tensor representing the deformation field.
+        """
         
         conn1 = self.down1(x)
         # print("Conn" + str(conn1.shape))
