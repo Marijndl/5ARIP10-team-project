@@ -28,6 +28,18 @@ optimization_patience = 3
 optimization_factor = 0.2
 
 def evaluate_model(model, test_loader, loss):
+    """
+    Evaluate the model on the test dataset.
+
+    Parameters:
+    - model: The trained model.
+    - test_loader: DataLoader for the test set.
+    - loss: The loss function.
+
+    Returns:
+    - mPD: Mean Projection Distance.
+    - std_mPD: Standard deviation of the projection distance.
+    """
     model.eval()
     all_distances = []
 
@@ -70,6 +82,15 @@ def evaluate_model(model, test_loader, loss):
 
 
 def objective(trial):
+    """
+    Objective function for Bayesian optimization using Optuna.
+
+    Parameters:
+    - trial: An Optuna trial object.
+
+    Returns:
+    - mPd: Mean Projection Distance for the validation set.
+    """
     learning_rate = trial.suggest_float('learning_rate', 1e-2, 1e-1, log=True)
     optimizer_name = trial.suggest_categorical('optimizer', ['Adam'])
     batch_size = trial.suggest_categorical('batch_size', [64, 128, 256, 512])
@@ -108,6 +129,15 @@ def objective(trial):
 
 
 def optimization(trails=30):
+    """
+    Perform Bayesian optimization using Optuna.
+
+    Parameters:
+    - trials: Number of trials to run.
+
+    Returns:
+    - Best hyperparameters found during optimization.
+    """
     study = optuna.create_study(direction='minimize')
     study.optimize(objective, n_trials=trails)
 
