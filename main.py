@@ -1,3 +1,4 @@
+import json
 import pickle
 import keyboard
 import optuna
@@ -12,6 +13,7 @@ import matplotlib.pyplot as plt
 from helper_functions import *
 import torch
 from tqdm import tqdm
+import random
 
 
 class mPD_loss_2(nn.Module):
@@ -243,7 +245,8 @@ def train_model(model, criterion, optimizer, train_loader, val_loader,batch_size
             best_val_loss = epoch_val_loss
             if overwrite_model(model_save_name_val, best_val_loss):
                 save_model(model, epoch+1, batch_size, learning_rate, smoothing,  optimizer, epoch_train_loss,  epoch_val_loss, best_val_loss, model_save_name_val, scheduler=scheduler, scheduler_type=scheduler_type)
-
+                # save losses in json file
+                save_losses(train_losses, val_losses, model_save_name_val)
 
     if stop_training == False:
         print(f"Training completed, saving the model as {model_save_name}")
@@ -251,8 +254,22 @@ def train_model(model, criterion, optimizer, train_loader, val_loader,batch_size
         # best_val_loss, don't overwrite it
         if overwrite_model(model_save_name, best_val_loss):
             save_model(model, epoch+1, batch_size, learning_rate, smoothing,  optimizer, epoch_train_loss,  epoch_val_loss, best_val_loss, model_save_name, scheduler=scheduler, scheduler_type=scheduler_type)
-
+            # saver the training and validation losses
+            save_losses(train_losses, val_losses, model_save_name)
     return train_losses, val_losses
+
+def save_losses(train_losses, val_losses, model_save_name):
+    """
+    Save the training and validation losses in a json file.
+
+    Parameters:
+    - train_losses: list of training losses
+    - val_losses: list of validation losses
+    - model_save_name: the name of the model
+    """
+    losses = {"train_losses": train_losses, "val_losses": val_losses}
+    with open(f"D:\\CTA data\\models\\{model_save_name}_losses.json", "w") as f:
+        json.dump(losses, f, indent=4)
 
 
 stop_training = False
@@ -266,24 +283,42 @@ def on_key_press(event):
 keyboard.on_press(on_key_press)
 
 # Hyperparameters
-batch_size = 256
-learning_rate = 0.02
+batch_size = 64
+learning_rate = 0.06878889441341672
 optimizer_name = 'Adam'
-number_of_epochs = 150
+number_of_epochs = 50
 smoothing = 0.02
 use_scheduler = True
 
 # Learning rate scheduler
 schedule_type = 'StepLR' # Use 'ReduceLROnPlateau' or 'StepLR'
-scheduler_step_size = 6
-scheduler_gamma = 0.1
+if schedule_type == 'ReduceLROnPlateau':
+    scheduler_factor = 0.1
+    scheduler_patience = 5
+elif schedule_type == 'StepLR':
+    scheduler_step_size = 6
+    scheduler_gamma = 0.1
+else:
+    assert False, "Invalid scheduler type"
+
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
 
 load_best_params = True    # Load the best parameters found by the Bayesian optimization from the best_params.txt file
-model_save_name = "CAR-Net-Optimizer_trial0"     # Name of the model to save
+model_save_name = "CAR-Net-Optimizer_best_parameter_STLR"     # Name of the model to save
 checkpoint_path = f"D:\\CTA data\\models\\{model_save_name}_checkpoint"
 
 if __name__ == "__main__":
-
+    seed_value = 30
+    set_seed(seed_value)
     #Initialize model
     model = CARNet().to(device)
     model.apply(weights_init)
@@ -308,7 +343,7 @@ if __name__ == "__main__":
     optimizer = getattr(optim, optimizer_name)(model.parameters(), lr=learning_rate, weight_decay=1e-5)
     if use_scheduler:
         if schedule_type == 'ReduceLROnPlateau':
-            scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5, verbose=True)
+            scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=scheduler_factor, patience=scheduler_patience, verbose=True)
         elif schedule_type == 'StepLR':
             scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=scheduler_step_size, gamma=scheduler_gamma)
         elif schedule_type == 'None':
