@@ -1,74 +1,45 @@
 # 5ARIP10-team-project
-### How to generate the dataset
+### General Introduction
+This project is a real-time 3D/2D coronary artery registration algorithm that transforms deformed 2D X-Ray artery image into matching 3D CT artery image. The model is based on the paper [CAR-Net: A Deep Learning-Based Deformation Model for 3D/2D Coronary Artery Registration](https://pubmed.ncbi.nlm.nih.gov/35436189/).
 
-The origin dataset is [ImageCAS](https://github.com/XiaoweiXu/ImageCAS-A-Large-Scale-Dataset-and-Benchmark-for-Coronary-Artery-Segmentation-based-on-CT), A-Large-Scale-Dataset-and-Benchmark-for-Coronary-Artery-Segmentation-based-on-Computed-Tomo. This dataset contains about 1000 3D CTA images.
+The model is deep learning based and uses UNet structure and dual-branch training. The dataset used for training is [ImageCAS](https://github.com/XiaoweiXu/ImageCAS-A-Large-Scale-Dataset-and-Benchmark-for-Coronary-Artery-Segmentation-based-on-CT), A-Large-Scale-Dataset-and-Benchmark-for-Coronary-Artery-Segmentation-based-on-Computed-Tomo. This dataset contains about 1000 3D CTA images.
+### Project Structure
 
-**Step 1**: Download ImageCAS dataset and [3D Slicer](https://www.slicer.org/) (necessary for the next step)
+**main.py:**
+The main.py file trains the CARNet model using 3D and 2D data with custom loss functions and optimization techniques, including data loading, model initialization, training with checkpoints, and learning rate scheduling.
 
-**Step 2**: Extract the centerlines of the arteries from the CTA images, sample 350 points per segment by default. The 3D and 2D data are Cartesian coordinates (x,y,z) of the sample points, and the projected 2D data is 3D data with the z-axis component removed. 
+**model.py:**
+The model.py file defines the architecture of the CARNet model, including dual-branch processing for 2D and 3D inputs and a UNet backbone for generating a deformation field, featuring various layers and modules for downsampling, upsampling, and feature extraction.
 
-+ Switch to the directory where you download the 3D slicer
+**data_loader.py:**
+The data_loader.py file defines classes for loading and preprocessing 2D and 3D data(conversion to spherical coordinates), and includes functions for splitting the dataset into training, validation, and test sets with DataLoaders.
 
-  example (Windows CLI):
-  `cd C:\AppData\Local\slicer.org\Slicer 5.6.1`
+**spherical_coordinates.py:** The spherical_coordinates.py file provides functions for converting between Cartesian and spherical coordinates, and for projecting 3D data to 2D. It includes methods for transforming coordinates to and from spherical form and for testing these transformations with example data.
 
-+ Run the extract_centerline.py in 3D slicer to generate centerlines, with arguments: the path of the downloaded CTA data, the path to save the output (extracted centerlines)
+**helper_function.py:** The helper_function.py file contains utility functions for saving, loading, and managing model checkpoints during the training process of the CARNet model. It includes functions to decide whether to overwrite existing models, save model states along with training parameters and statistics, and load model states from checkpoints.
 
-  example (Windows CLI):
+**hyperparameter_optimization.py:** The hyperparameter_optimization.py file performs hyperparameter optimization for training the CARNet model using Optuna for Bayesian optimization. It defines the evaluation and objective functions for the optimization process and includes code to run and save the optimization results.
 
-  `Slicer.exe --python-script "C:\data_creation\extract_centerline.py" --no-splash --no-main-window 'd:/CTA data/1-1000' 'D:\\CTA data\\Segments'`
+**inference_time.py:** The inference_time.py file measures the inference time of the CARNet model on a GPU by running a series of forward passes with dummy input data. It includes GPU warm-up, repeated timing of inference, and calculation of average inference time and standard deviation, followed by plotting the timing results.
 
+**registration_demo.py:** The registration_demo.py file evaluates the CARNet model's performance on a test dataset by computing the mean projection distance (mPD) between deformed 3D points and original 2D points. It includes functions for loading the model and data, running the evaluation, and plotting results to visualize the deformations and original alignments.
 
-**Step 3**: Smooth the dataset
-
-+ Run Interp_segments.py to interpolate the segments with Bspline to smooth the data. Change the directory to your own directory
-
-**Step 4:** Create the deformed 2D dataset and the offset list
-
-+ Run Deformed_data_creation.py, with the argument of the interpolated dataset directory
-
-**Step 5:** Create spherical coordinates from Cartesian coordinates data, and load the 2 types of 3D and 2D files into PyTorch tensor, saved separately in 4 files: origin_2D_interp_353.pt, origin_3D_interp_353.pt, shape_2D_interp_353.pt, shape_3D_interp_353.pt
-
-+ run data_tensor.py, with arguments: the path of deformed 2D dataset and the path of interpolated 3D dataset
 
 ### How to run the model
-#### 1. Install Anaconda
-
-If you do not have Anaconda installed, download and install it from the [official Anaconda website](https://www.anaconda.com/products/distribution#download-section).
-
-#### 2. Create a New Environment
-
-Copy following code to create an environment.yml file:
-
-```yaml
-name: carnet
-channels:
-  - defaults
-  - conda-forge
-dependencies:
-  - python=3.8
-  - numpy
-  - matplotlib
-  - tqdm
-  - scipy
-  - pandas
-  - optuna
-  - keyboard
-  - pyqt
-```
-
-Open your terminal (or Anaconda Prompt) and create a new environment using the following command:
-
-```sh
-conda env create -f environment.yml
-```
-
-Install PyTorch from [PyTorch](https://pytorch.org/), and select conda, your own system, and CUDA version. 
-
-#### 3. Download project
+#### 1.  Download project
 
 Clone the project using git clone:` git clone git@github.com:Marijndl/5ARIP10-team-project.git`
 
 Create a directory 'CTA data' to store the generated data pt file, and create a directory 'models' under 'CTA data', to store the model.
 
+#### 2.Create a New Environment
+
+
+Open your terminal and install dependencies using the following command:
+
+```sh
+pip install -r requirements.txt
+```
+
+#### 3. Run the project
 Run the project with command: `python main.py`
