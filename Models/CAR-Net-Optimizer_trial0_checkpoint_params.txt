@@ -1,0 +1,203 @@
+Epoch: 39
+Train Loss: 0.028932945831302737
+Validation Loss: 0.04575922458484657
+Model: CARNet(
+  (dual_branch_3d): DualBranch(
+    (origin_branch): Sequential(
+      (0): Conv1d(3, 8, kernel_size=(1,), stride=(1,))
+      (1): BatchNorm1d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (2): ReLU()
+      (3): Conv1d(8, 16, kernel_size=(1,), stride=(1,))
+      (4): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (5): ReLU()
+      (6): Conv1d(16, 32, kernel_size=(1,), stride=(1,))
+      (7): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (8): ReLU()
+      (9): Conv1d(32, 64, kernel_size=(1,), stride=(1,))
+    )
+    (shape_branch): Sequential(
+      (0): Conv1d(3, 64, kernel_size=(3,), stride=(1,), padding=(1,))
+      (1): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (2): ReLU()
+      (3): Conv1d(64, 64, kernel_size=(3,), stride=(1,), padding=(1,))
+    )
+    (bn_relu): Sequential(
+      (0): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (1): ReLU()
+    )
+  )
+  (dual_branch_2d): DualBranch(
+    (origin_branch): Sequential(
+      (0): Conv1d(3, 8, kernel_size=(1,), stride=(1,))
+      (1): BatchNorm1d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (2): ReLU()
+      (3): Conv1d(8, 16, kernel_size=(1,), stride=(1,))
+      (4): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (5): ReLU()
+      (6): Conv1d(16, 32, kernel_size=(1,), stride=(1,))
+      (7): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (8): ReLU()
+      (9): Conv1d(32, 64, kernel_size=(1,), stride=(1,))
+    )
+    (shape_branch): Sequential(
+      (0): Conv1d(3, 64, kernel_size=(3,), stride=(1,), padding=(1,))
+      (1): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (2): ReLU()
+      (3): Conv1d(64, 64, kernel_size=(3,), stride=(1,), padding=(1,))
+    )
+    (bn_relu): Sequential(
+      (0): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (1): ReLU()
+    )
+  )
+  (unet_backbone): UNet(
+    (down1): grey(
+      (conv): Sequential(
+        (0): Conv1d(128, 64, kernel_size=(3,), stride=(1,), padding=(1,))
+        (1): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): ReLU()
+      )
+    )
+    (down2): Downsample(
+      (conv_layers): Sequential(
+        (0): Conv1d(64, 64, kernel_size=(1,), stride=(1,))
+        (1): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): ReLU()
+        (3): Conv1d(64, 64, kernel_size=(3,), stride=(1,), padding=(1,))
+        (4): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (5): ReLU()
+        (6): Conv1d(64, 64, kernel_size=(3,), stride=(1,), padding=(1,))
+        (7): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (8): ReLU()
+        (9): Conv1d(64, 64, kernel_size=(3,), stride=(2,), padding=(1,))
+        (10): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (11): ReLU()
+        (12): Conv1d(64, 128, kernel_size=(1,), stride=(1,))
+      )
+      (bn_relu_add): Sequential(
+        (0): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (1): ReLU()
+      )
+      (conv2): Sequential(
+        (0): Conv1d(64, 128, kernel_size=(3,), stride=(2,), padding=(1,))
+      )
+    )
+    (down3): Downsample(
+      (conv_layers): Sequential(
+        (0): Conv1d(128, 64, kernel_size=(1,), stride=(1,))
+        (1): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): ReLU()
+        (3): Conv1d(64, 64, kernel_size=(3,), stride=(1,), padding=(1,))
+        (4): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (5): ReLU()
+        (6): Conv1d(64, 64, kernel_size=(3,), stride=(1,), padding=(1,))
+        (7): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (8): ReLU()
+        (9): Conv1d(64, 64, kernel_size=(3,), stride=(2,), padding=(1,))
+        (10): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (11): ReLU()
+        (12): Conv1d(64, 256, kernel_size=(1,), stride=(1,))
+      )
+      (bn_relu_add): Sequential(
+        (0): BatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (1): ReLU()
+      )
+      (conv2): Sequential(
+        (0): Conv1d(128, 256, kernel_size=(3,), stride=(2,), padding=(1,))
+      )
+    )
+    (down4): Downsample(
+      (conv_layers): Sequential(
+        (0): Conv1d(256, 64, kernel_size=(1,), stride=(1,))
+        (1): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): ReLU()
+        (3): Conv1d(64, 64, kernel_size=(3,), stride=(1,), padding=(1,))
+        (4): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (5): ReLU()
+        (6): Conv1d(64, 64, kernel_size=(3,), stride=(1,), padding=(1,))
+        (7): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (8): ReLU()
+        (9): Conv1d(64, 64, kernel_size=(3,), stride=(2,), padding=(1,))
+        (10): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (11): ReLU()
+        (12): Conv1d(64, 512, kernel_size=(1,), stride=(1,))
+      )
+      (bn_relu_add): Sequential(
+        (0): BatchNorm1d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (1): ReLU()
+      )
+      (conv2): Sequential(
+        (0): Conv1d(256, 512, kernel_size=(3,), stride=(2,), padding=(1,))
+      )
+    )
+    (bridge): grey(
+      (conv): Sequential(
+        (0): Conv1d(512, 512, kernel_size=(3,), stride=(1,), padding=(1,))
+        (1): BatchNorm1d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): ReLU()
+      )
+    )
+    (up1): orange(
+      (upconv): Sequential(
+        (0): ConvTranspose1d(512, 256, kernel_size=(3,), stride=(2,), padding=(1,), output_padding=(1,))
+        (1): BatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): ReLU()
+      )
+    )
+    (up2): grey(
+      (conv): Sequential(
+        (0): Conv1d(512, 256, kernel_size=(3,), stride=(1,), padding=(1,))
+        (1): BatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): ReLU()
+      )
+    )
+    (up3): orange(
+      (upconv): Sequential(
+        (0): ConvTranspose1d(256, 128, kernel_size=(3,), stride=(2,), padding=(1,), output_padding=(1,))
+        (1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): ReLU()
+      )
+    )
+    (up4): grey(
+      (conv): Sequential(
+        (0): Conv1d(256, 128, kernel_size=(3,), stride=(1,), padding=(1,))
+        (1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): ReLU()
+      )
+    )
+    (up5): orange(
+      (upconv): Sequential(
+        (0): ConvTranspose1d(128, 64, kernel_size=(3,), stride=(2,), padding=(1,), output_padding=(1,))
+        (1): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): ReLU()
+      )
+    )
+    (up6): grey(
+      (conv): Sequential(
+        (0): Conv1d(128, 64, kernel_size=(3,), stride=(1,), padding=(1,))
+        (1): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): ReLU()
+      )
+    )
+    (output_layer): Conv1d(64, 2, kernel_size=(1,), stride=(1,))
+  )
+)
+Optimizer: Adam (
+Parameter Group 0
+    amsgrad: False
+    betas: (0.9, 0.999)
+    capturable: False
+    differentiable: False
+    eps: 1e-08
+    foreach: None
+    fused: None
+    initial_lr: 0.06878889441341672
+    lr: 6.878889441341674e-08
+    maximize: False
+    weight_decay: 0
+)
+Scheduler StepLR: step size: 6, gamma: 0.1
+Batch size: 64
+Initial learning rate: 0.06878889441341672
+Smoothing: 0.0025179340385016688
+Best validation loss: 0.0456777675483818
