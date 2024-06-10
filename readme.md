@@ -1,10 +1,11 @@
 # 5ARIP10-team-project
+<img src="logo_transparent.png" alt="Logo" height="75"/>
+
 ### General Introduction
-This project is a real-time 3D/2D coronary artery registration algorithm that transforms deformed 2D X-Ray artery image into matching 3D CT artery image. The model is based on the paper [CAR-Net: A Deep Learning-Based Deformation Model for 3D/2D Coronary Artery Registration](https://pubmed.ncbi.nlm.nih.gov/35436189/).
+This repository holds all the code that was created for the interdisciplinary team project (5ARIP10) from TU/e. The objective of this project was to start and represent a medical start-up company in the Image Guided Therapy (IGT) field, which utilizes machine learning techniques to develop a working prototype. This project focused on creating a real-time 3D/2D coronary artery registration algorithm that deforms 3D CT artery image into corresponding 2D X-Ray artery image. The model is based on the paper [CAR-Net: A Deep Learning-Based Deformation Model for 3D/2D Coronary Artery Registration](https://pubmed.ncbi.nlm.nih.gov/35436189/).
 
-The model is deep learning based and uses UNet structure and dual-branch training. The dataset used for training is [ImageCAS](https://github.com/XiaoweiXu/ImageCAS-A-Large-Scale-Dataset-and-Benchmark-for-Coronary-Artery-Segmentation-based-on-CT), A-Large-Scale-Dataset-and-Benchmark-for-Coronary-Artery-Segmentation-based-on-Computed-Tomo. This dataset contains about 1000 3D CTA images.
+The model is deep learning based and uses UNet structure and dual-branch training. The dataset used for training is [ImageCAS](https://github.com/XiaoweiXu/ImageCAS-A-Large-Scale-Dataset-and-Benchmark-for-Coronary-Artery-Segmentation-based-on-CT), A-Large-Scale-Dataset-and-Benchmark-for-Coronary-Artery-Segmentation-based-on-Computed-Tomo. This dataset contains 1000 3D CTA images. From this dataset, synthetic 2D data was created.
 ### Project Structure
-
 **main.py:**
 The main.py file trains the CARNet model using 3D and 2D data with custom loss functions and optimization techniques, including data loading, model initialization, training with checkpoints, and learning rate scheduling.
 
